@@ -1,0 +1,19 @@
+[package]
+name = "powerflow-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# plist parsing for ioreg output
+plist = "1.6"
+
+[dev-dependencies]
