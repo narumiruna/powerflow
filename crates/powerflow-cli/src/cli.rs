@@ -56,8 +56,9 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
     };
     use ratatui::{
         backend::CrosstermBackend,
-        style::{Color, Style},
-        widgets::{Axis, Block, Borders, Chart, Dataset},
+        layout::{Constraint, Direction, Layout},
+        style::{Color, Modifier, Style},
+        widgets::{Axis, Block, Borders, Cell, Chart, Dataset, Paragraph, Row, Table},
         Terminal,
     };
     use std::io::{self};
@@ -88,6 +89,49 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
         .fold(f64::NEG_INFINITY, f64::max)
         .max(max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
 
+    // Statistics block
+    let latest = readings.first().unwrap();
+    let oldest = readings.last().unwrap();
+    let avg_watt = watts.iter().sum::<f64>() / watts.len() as f64;
+    let min_watt = watts.iter().cloned().fold(f64::INFINITY, f64::min);
+    let max_watt = watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let avg_percent =
+        readings.iter().map(|r| r.battery_percent).sum::<i32>() as f64 / readings.len() as f64;
+
+    let stats = format!(
+        "最新: {}\n最舊: {}\n平均功率: {:.1}W\n最大功率: {:.1}W\n最小功率: {:.1}W\n平均電池: {:.1}%",
+        latest.timestamp.format("%Y-%m-%d %H:%M:%S"),
+        oldest.timestamp.format("%Y-%m-%d %H:%M:%S"),
+        avg_watt,
+        max_watt,
+        min_watt,
+        avg_percent
+    );
+
+    // Table block (show up to 10 latest, newest first)
+    let table_rows: Vec<Row> = readings
+        .iter()
+        .rev()
+        .take(10)
+        .map(|r| {
+            Row::new(vec![
+                Cell::from(r.timestamp.format("%m-%d %H:%M").to_string()),
+                Cell::from(format!("{:.1}", r.watts_actual)),
+                Cell::from(format!("{}", r.watts_negotiated)),
+                Cell::from(format!("{:.2}", r.voltage)),
+                Cell::from(format!("{:.2}", r.amperage)),
+                Cell::from(format!("{}%", r.battery_percent)),
+                Cell::from(if r.is_charging {
+                    "充電"
+                } else if r.external_connected {
+                    "外接"
+                } else {
+                    "電池"
+                }),
+            ])
+        })
+        .collect();
+
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -99,6 +143,62 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
         loop {
             terminal.draw(|f| {
                 let size = f.size();
+                let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(1)
+                    .constraints(
+                        [
+                            Constraint::Length(6),
+                            Constraint::Length(12),
+                            Constraint::Min(10),
+                        ]
+                        .as_ref(),
+                    )
+                    .split(size);
+
+                // Statistics
+                let stats_block = Paragraph::new(stats.clone())
+                    .block(Block::default().title("統計資訊").borders(Borders::ALL))
+                    .style(
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    );
+                f.render_widget(stats_block, chunks[0]);
+
+                // Table
+                let table = Table::new(
+                    table_rows.clone(),
+                    [
+                        Constraint::Length(12),
+                        Constraint::Length(8),
+                        Constraint::Length(10),
+                        Constraint::Length(8),
+                        Constraint::Length(8),
+                        Constraint::Length(8),
+                        Constraint::Length(8),
+                    ],
+                )
+                .header(
+                    Row::new(vec![
+                        "時間",
+                        "功率",
+                        "協商功率",
+                        "電壓",
+                        "電流",
+                        "電池",
+                        "狀態",
+                    ])
+                    .style(
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                )
+                .block(Block::default().title("最近記錄").borders(Borders::ALL));
+                f.render_widget(table, chunks[1]);
+
+                // Chart
                 let chart = Chart::new(vec![
                     Dataset::default()
                         .name("Power Watt")
@@ -138,7 +238,7 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
                             format!("{:.1}", max_power).into(),
                         ]),
                 );
-                f.render_widget(chart, size);
+                f.render_widget(chart, chunks[2]);
             })?;
 
             if event::poll(std::time::Duration::from_millis(100))? {
