@@ -6,6 +6,10 @@
 - Added new file: `crates/powerflow-cli/src/database.rs`
 - Modified: `CLAUDE.md`, `crates/powerflow-cli/Cargo.toml`, `crates/powerflow-cli/src/cli.rs`, `crates/powerflow-cli/src/display/json.rs`, `crates/powerflow-cli/src/main.rs`, `crates/powerflow-core/src/collector/smc/ffi.rs`, `crates/powerflow-core/src/collector/smc/mod.rs`
 
+---
+
+**開發注意事項：每次修改 Rust 檔案後，請執行 linter 與格式化檢查（建議指令：`cargo clippy` 與 `cargo fmt`），以確保程式碼品質、風格一致與正確性。**
+
 本專案現已專注於 macOS 電源資訊的命令列工具（CLI），原 GUI 應用程式部分已移除。
 
 ## 專案目標

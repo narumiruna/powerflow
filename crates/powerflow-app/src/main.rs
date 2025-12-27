@@ -29,7 +29,8 @@ struct AppState {
 #[tauri::command]
 async fn get_power_data(state: State<'_, AppState>) -> Result<PowerData, String> {
     let data = state.power_data.lock().await;
-    data.clone().ok_or_else(|| "No power data available".to_string())
+    data.clone()
+        .ok_or_else(|| "No power data available".to_string())
 }
 
 fn update_tray_title(app: &tauri::AppHandle, watts: f64, max_watts: i32) {
@@ -62,11 +63,13 @@ async fn collect_power_data(app: tauri::AppHandle, state: Arc<Mutex<Option<Power
                 };
 
                 // Debug output
-                println!("📊 Power Data: {:.1}W / {}W, Battery: {}%, Charger: {:?}",
+                println!(
+                    "📊 Power Data: {:.1}W / {}W, Battery: {}%, Charger: {:?}",
                     power_data.watts_actual,
                     power_data.watts_negotiated,
                     power_data.battery_percent,
-                    power_data.charger_name);
+                    power_data.charger_name
+                );
 
                 // Update tray icon title
                 update_tray_title(&app, power_data.watts_actual, power_data.watts_negotiated);

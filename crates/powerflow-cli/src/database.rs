@@ -1,6 +1,6 @@
-use rusqlite::{Connection, params, Result};
 use chrono::{DateTime, Utc};
 use powerflow_core::PowerReading;
+use rusqlite::{params, Connection, Result};
 
 pub fn init_db(db_path: &str) -> Result<Connection> {
     let conn = Connection::open(db_path)?;
@@ -51,7 +51,8 @@ pub fn query_history(conn: &Connection, limit: usize) -> Result<Vec<PowerReading
     let rows = stmt.query_map(params![limit as i64], |row| {
         Ok(PowerReading {
             timestamp: DateTime::parse_from_rfc3339(row.get::<_, String>(0)?.as_str())
-                .map(|dt| dt.with_timezone(&Utc)).unwrap(),
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap(),
             watts_actual: row.get(1)?,
             watts_negotiated: row.get(2)?,
             voltage: row.get(3)?,
@@ -75,9 +76,9 @@ pub fn query_history(conn: &Connection, limit: usize) -> Result<Vec<PowerReading
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
-    use powerflow_core::PowerReading;
     use chrono::Utc;
+    use powerflow_core::PowerReading;
+    use tempfile::NamedTempFile;
 
     fn sample_reading() -> PowerReading {
         PowerReading {
@@ -111,6 +112,9 @@ mod tests {
         assert_eq!(r.watts_actual, 45.2);
         assert_eq!(r.watts_negotiated, 67);
         assert_eq!(r.battery_percent, 72);
-        assert_eq!(r.charger_name.as_deref(), Some("Apple 67W USB-C Power Adapter"));
+        assert_eq!(
+            r.charger_name.as_deref(),
+            Some("Apple 67W USB-C Power Adapter")
+        );
     }
 }

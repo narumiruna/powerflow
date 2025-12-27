@@ -52,9 +52,7 @@ impl IORegCollector {
     /// Convert IORegBattery to PowerReading
     fn convert_to_reading(battery: IORegBattery) -> PowerResult<PowerReading> {
         // Extract voltage and amperage, convert from mV/mA to V/A
-        let voltage_mv = battery
-            .voltage
-            .ok_or(PowerError::MissingField("Voltage"))?;
+        let voltage_mv = battery.voltage.ok_or(PowerError::MissingField("Voltage"))?;
         let amperage_ma = battery
             .amperage
             .ok_or(PowerError::MissingField("Amperage"))?;
@@ -70,10 +68,7 @@ impl IORegCollector {
             if let Some(ref details) = battery.adapter_details {
                 if let Some(adapter) = details.first() {
                     // Prefer Name over Description
-                    let name = adapter
-                        .name
-                        .clone()
-                        .or_else(|| adapter.description.clone());
+                    let name = adapter.name.clone().or_else(|| adapter.description.clone());
                     (
                         adapter.watts.unwrap_or(0),
                         name,

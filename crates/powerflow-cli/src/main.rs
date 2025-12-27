@@ -1,6 +1,6 @@
 mod cli;
-mod display;
 mod database;
+mod display;
 
 use anyhow::Result;
 use clap::Parser;

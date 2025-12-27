@@ -5,7 +5,6 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-
 // SMC key codes
 pub const KERNEL_INDEX_SMC: u32 = 2;
 pub const SMC_CMD_READ_BYTES: u8 = 5;

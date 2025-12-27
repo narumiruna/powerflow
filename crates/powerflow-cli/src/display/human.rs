@@ -32,7 +32,8 @@ pub fn print_reading(reading: &PowerReading) {
     // Electrical details
     println!(
         "   Electrical: {:.2}V × {:.2}A",
-        reading.voltage, reading.amperage.abs()
+        reading.voltage,
+        reading.amperage.abs()
     );
 
     // Charger info

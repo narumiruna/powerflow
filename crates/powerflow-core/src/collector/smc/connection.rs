@@ -212,9 +212,7 @@ impl SMCConnection {
                 // Unknown type, try to parse as unsigned integer
                 match data_size {
                     1 => Ok(bytes.first().copied().unwrap_or(0) as f32),
-                    2 if bytes.len() >= 2 => {
-                        Ok(u16::from_be_bytes([bytes[0], bytes[1]]) as f32)
-                    }
+                    2 if bytes.len() >= 2 => Ok(u16::from_be_bytes([bytes[0], bytes[1]]) as f32),
                     4 if bytes.len() >= 4 => {
                         Ok(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as f32)
                     }

@@ -1,5 +1,5 @@
-use crate::display;
 use super::database;
+use crate::display;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
@@ -45,22 +45,20 @@ enum Commands {
         /// 圖表檔案名稱
         #[arg(long, default_value = "powerflow-history.png")]
         output: String,
-
     },
 }
 
 fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Result<()> {
-    use ratatui::{
-        backend::CrosstermBackend,
-        Terminal,
-        widgets::{Block, Borders, Chart, Axis, Dataset},
-        style::{Color, Style},
-        symbols,
-    };
     use crossterm::{
         event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
         execute,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    };
+    use ratatui::{
+        backend::CrosstermBackend,
+        style::{Color, Style},
+        widgets::{Axis, Block, Borders, Chart, Dataset},
+        Terminal,
     };
     use std::io::{self};
 
@@ -79,12 +77,16 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
     let data_max: Vec<(f64, f64)> = x.iter().cloned().zip(max_watts.iter().cloned()).collect();
 
     // Find y range
-    let min_power = watts.iter().cloned().fold(f64::INFINITY, f64::min).min(
-        max_watts.iter().cloned().fold(f64::INFINITY, f64::min)
-    );
-    let max_power = watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max).max(
-        max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
-    );
+    let min_power = watts
+        .iter()
+        .cloned()
+        .fold(f64::INFINITY, f64::min)
+        .min(max_watts.iter().cloned().fold(f64::INFINITY, f64::min));
+    let max_power = watts
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max)
+        .max(max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
 
     // Setup terminal
     enable_raw_mode()?;
@@ -98,40 +100,44 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
             terminal.draw(|f| {
                 let size = f.size();
                 let chart = Chart::new(vec![
-                        Dataset::default()
-                            .name("Power Watt")
-                            .marker(symbols::Marker::Braille)
-                            .style(Style::default().fg(Color::Red))
-                            .data(&data_watt),
-                        Dataset::default()
-                            .name("Max Power (Watt)")
-                            .marker(symbols::Marker::Braille)
-                            .style(Style::default().fg(Color::Blue))
-                            .data(&data_max),
-                    ])
-                    .block(Block::default().title("PowerFlow 歷史功率 (q 離開)").borders(Borders::ALL))
-                    .x_axis(
-                        Axis::default()
-                            .title("時間 (最新→最舊)")
-                            .style(Style::default().fg(Color::Gray))
-                            .bounds([0.0, x.len().max(1) as f64 - 1.0])
-                            .labels(vec![
-                                "最新".into(),
-                                format!("{}", x.len().max(1) / 2).into(),
-                                "最舊".into(),
-                            ]),
-                    )
-                    .y_axis(
-                        Axis::default()
-                            .title("功率 (Watt)")
-                            .style(Style::default().fg(Color::Gray))
-                            .bounds([min_power, max_power])
-                            .labels(vec![
-                                format!("{:.1}", min_power).into(),
-                                format!("{:.1}", (min_power + max_power) / 2.0).into(),
-                                format!("{:.1}", max_power).into(),
-                            ]),
-                    );
+                    Dataset::default()
+                        .name("Power Watt")
+                        .graph_type(ratatui::widgets::GraphType::Line)
+                        .style(Style::default().fg(Color::Red))
+                        .data(&data_watt),
+                    Dataset::default()
+                        .name("Max Power (Watt)")
+                        .graph_type(ratatui::widgets::GraphType::Line)
+                        .style(Style::default().fg(Color::Blue))
+                        .data(&data_max),
+                ])
+                .block(
+                    Block::default()
+                        .title("PowerFlow 歷史功率 (q 離開)")
+                        .borders(Borders::ALL),
+                )
+                .x_axis(
+                    Axis::default()
+                        .title("時間 (最新→最舊)")
+                        .style(Style::default().fg(Color::Gray))
+                        .bounds([0.0, x.len().max(1) as f64 - 1.0])
+                        .labels(vec![
+                            "最新".into(),
+                            format!("{}", x.len().max(1) / 2).into(),
+                            "最舊".into(),
+                        ]),
+                )
+                .y_axis(
+                    Axis::default()
+                        .title("功率 (Watt)")
+                        .style(Style::default().fg(Color::Gray))
+                        .bounds([min_power, max_power])
+                        .labels(vec![
+                            format!("{:.1}", min_power).into(),
+                            format!("{:.1}", (min_power + max_power) / 2.0).into(),
+                            format!("{:.1}", max_power).into(),
+                        ]),
+                );
                 f.render_widget(chart, size);
             })?;
 
@@ -158,9 +164,12 @@ fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Resul
     result
 }
 
-fn plot_history_chart(readings: &[powerflow_core::PowerReading], output: &str) -> anyhow::Result<()> {
-    use plotters::prelude::*;
+fn plot_history_chart(
+    readings: &[powerflow_core::PowerReading],
+    output: &str,
+) -> anyhow::Result<()> {
     use chrono::Local;
+    use plotters::prelude::*;
 
     if readings.is_empty() {
         println!("沒有可用的歷史資料，無法繪製圖表。");
@@ -170,18 +179,25 @@ fn plot_history_chart(readings: &[powerflow_core::PowerReading], output: &str) -
     let root = BitMapBackend::new(output, (900, 480)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    let times: Vec<_> = readings.iter().map(|r| r.timestamp.with_timezone(&Local)).collect();
+    let times: Vec<_> = readings
+        .iter()
+        .map(|r| r.timestamp.with_timezone(&Local))
+        .collect();
     let watts: Vec<_> = readings.iter().map(|r| r.watts_actual).collect();
     let max_watts: Vec<_> = readings.iter().map(|r| r.watts_negotiated as f64).collect();
 
     let min_time = *times.first().unwrap();
     let max_time = *times.last().unwrap();
-    let min_power = watts.iter().cloned().fold(f64::INFINITY, f64::min).min(
-        max_watts.iter().cloned().fold(f64::INFINITY, f64::min)
-    );
-    let max_power = watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max).max(
-        max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
-    );
+    let min_power = watts
+        .iter()
+        .cloned()
+        .fold(f64::INFINITY, f64::min)
+        .min(max_watts.iter().cloned().fold(f64::INFINITY, f64::min));
+    let max_power = watts
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max)
+        .max(max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
 
     let mut chart = ChartBuilder::on(&root)
         .caption("PowerFlow 歷史功率", ("sans-serif", 30))
@@ -190,25 +206,33 @@ fn plot_history_chart(readings: &[powerflow_core::PowerReading], output: &str) -
         .y_label_area_size(60)
         .build_cartesian_2d(min_time..max_time, min_power..max_power)?;
 
-    chart.configure_mesh()
+    chart
+        .configure_mesh()
         .x_desc("時間")
         .y_desc("功率 (Watt)")
         .label_style(("sans-serif", 18))
         .draw()?;
 
-    chart.draw_series(LineSeries::new(
-        times.iter().zip(watts.iter()).map(|(t, w)| (*t, *w)),
-        &RED,
-    ))?.label("Power Watt").legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
+    chart
+        .draw_series(LineSeries::new(
+            times.iter().zip(watts.iter()).map(|(t, w)| (*t, *w)),
+            RED,
+        ))?
+        .label("Power Watt")
+        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED));
 
-    chart.draw_series(LineSeries::new(
-        times.iter().zip(max_watts.iter()).map(|(t, w)| (*t, *w)),
-        &BLUE,
-    ))?.label("Max Power (Watt)").legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+    chart
+        .draw_series(LineSeries::new(
+            times.iter().zip(max_watts.iter()).map(|(t, w)| (*t, *w)),
+            BLUE,
+        ))?
+        .label("Max Power (Watt)")
+        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], BLUE));
 
-    chart.configure_series_labels()
-        .background_style(&WHITE.mix(0.8))
-        .border_style(&BLACK)
+    chart
+        .configure_series_labels()
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
         .label_font(("sans-serif", 18))
         .draw()?;
 
@@ -236,9 +260,9 @@ impl Cli {
             }
             Some(Commands::Watch { interval }) => {
                 // 持續監控模式
+                use crossterm::{cursor, execute, terminal};
                 use std::io;
                 use std::time::Duration;
-                use crossterm::{cursor, execute, terminal};
 
                 let duration = Duration::from_secs(*interval);
 
@@ -265,7 +289,12 @@ impl Cli {
                     std::thread::sleep(duration);
                 }
             }
-            Some(Commands::History { limit, json, plot, output }) => {
+            Some(Commands::History {
+                limit,
+                json,
+                plot,
+                output,
+            }) => {
                 // 查詢歷史資料
                 let readings = database::query_history(&conn, *limit)?;
                 if *json {
@@ -280,5 +309,4 @@ impl Cli {
             }
         }
     }
-
 }
