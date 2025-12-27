@@ -5,9 +5,6 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use io_kit_sys::*;
-use mach2::kern_return::*;
-use std::os::raw::{c_char, c_void};
 
 // SMC key codes
 pub const KERNEL_INDEX_SMC: u32 = 2;

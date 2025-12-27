@@ -1,4 +1,5 @@
 use crate::display;
+use super::database;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
@@ -17,68 +18,267 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Display current power stats (default)
+    /// 顯示目前電源資訊
     Status,
 
-    /// Continuous monitoring
+    /// 持續監控模式
     Watch {
-        /// Update interval in seconds
+        /// 更新間隔（秒）
         #[arg(short, long, default_value = "2")]
         interval: u64,
     },
+
+    /// 查詢歷史資料
+    History {
+        /// 查詢筆數（預設 20）
+        #[arg(long, default_value = "20")]
+        limit: usize,
+
+        /// 以 JSON 格式輸出
+        #[arg(long)]
+        json: bool,
+
+        /// 輸出圖表 PNG 檔案（預設 powerflow-history.png）
+        #[arg(long)]
+        plot: bool,
+
+        /// 圖表檔案名稱
+        #[arg(long, default_value = "powerflow-history.png")]
+        output: String,
+
+    },
+}
+
+fn tui_history_chart(readings: &[powerflow_core::PowerReading]) -> anyhow::Result<()> {
+    use ratatui::{
+        backend::CrosstermBackend,
+        Terminal,
+        widgets::{Block, Borders, Chart, Axis, Dataset},
+        style::{Color, Style},
+        symbols,
+    };
+    use crossterm::{
+        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+        execute,
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    };
+    use std::io::{self};
+
+    if readings.is_empty() {
+        println!("沒有可用的歷史資料，無法繪製圖表。");
+        return Ok(());
+    }
+
+    // Prepare data for plotting
+    let watts: Vec<_> = readings.iter().map(|r| r.watts_actual).collect();
+    let max_watts: Vec<_> = readings.iter().map(|r| r.watts_negotiated as f64).collect();
+
+    // Normalize x axis to indices (since time labels are hard in TUI)
+    let x: Vec<f64> = (0..readings.len()).map(|i| i as f64).collect();
+    let data_watt: Vec<(f64, f64)> = x.iter().cloned().zip(watts.iter().cloned()).collect();
+    let data_max: Vec<(f64, f64)> = x.iter().cloned().zip(max_watts.iter().cloned()).collect();
+
+    // Find y range
+    let min_power = watts.iter().cloned().fold(f64::INFINITY, f64::min).min(
+        max_watts.iter().cloned().fold(f64::INFINITY, f64::min)
+    );
+    let max_power = watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max).max(
+        max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+    );
+
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let result = (|| {
+        loop {
+            terminal.draw(|f| {
+                let size = f.size();
+                let chart = Chart::new(vec![
+                        Dataset::default()
+                            .name("Power Watt")
+                            .marker(symbols::Marker::Braille)
+                            .style(Style::default().fg(Color::Red))
+                            .data(&data_watt),
+                        Dataset::default()
+                            .name("Max Power (Watt)")
+                            .marker(symbols::Marker::Braille)
+                            .style(Style::default().fg(Color::Blue))
+                            .data(&data_max),
+                    ])
+                    .block(Block::default().title("PowerFlow 歷史功率 (q 離開)").borders(Borders::ALL))
+                    .x_axis(
+                        Axis::default()
+                            .title("時間 (最新→最舊)")
+                            .style(Style::default().fg(Color::Gray))
+                            .bounds([0.0, x.len().max(1) as f64 - 1.0])
+                            .labels(vec![
+                                "最新".into(),
+                                format!("{}", x.len().max(1) / 2).into(),
+                                "最舊".into(),
+                            ]),
+                    )
+                    .y_axis(
+                        Axis::default()
+                            .title("功率 (Watt)")
+                            .style(Style::default().fg(Color::Gray))
+                            .bounds([min_power, max_power])
+                            .labels(vec![
+                                format!("{:.1}", min_power).into(),
+                                format!("{:.1}", (min_power + max_power) / 2.0).into(),
+                                format!("{:.1}", max_power).into(),
+                            ]),
+                    );
+                f.render_widget(chart, size);
+            })?;
+
+            if event::poll(std::time::Duration::from_millis(100))? {
+                if let Event::Key(key) = event::read()? {
+                    if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(())
+    })();
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    result
+}
+
+fn plot_history_chart(readings: &[powerflow_core::PowerReading], output: &str) -> anyhow::Result<()> {
+    use plotters::prelude::*;
+    use chrono::Local;
+
+    if readings.is_empty() {
+        println!("沒有可用的歷史資料，無法繪製圖表。");
+        return Ok(());
+    }
+
+    let root = BitMapBackend::new(output, (900, 480)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let times: Vec<_> = readings.iter().map(|r| r.timestamp.with_timezone(&Local)).collect();
+    let watts: Vec<_> = readings.iter().map(|r| r.watts_actual).collect();
+    let max_watts: Vec<_> = readings.iter().map(|r| r.watts_negotiated as f64).collect();
+
+    let min_time = *times.first().unwrap();
+    let max_time = *times.last().unwrap();
+    let min_power = watts.iter().cloned().fold(f64::INFINITY, f64::min).min(
+        max_watts.iter().cloned().fold(f64::INFINITY, f64::min)
+    );
+    let max_power = watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max).max(
+        max_watts.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+    );
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption("PowerFlow 歷史功率", ("sans-serif", 30))
+        .margin(20)
+        .x_label_area_size(40)
+        .y_label_area_size(60)
+        .build_cartesian_2d(min_time..max_time, min_power..max_power)?;
+
+    chart.configure_mesh()
+        .x_desc("時間")
+        .y_desc("功率 (Watt)")
+        .label_style(("sans-serif", 18))
+        .draw()?;
+
+    chart.draw_series(LineSeries::new(
+        times.iter().zip(watts.iter()).map(|(t, w)| (*t, *w)),
+        &RED,
+    ))?.label("Power Watt").legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
+
+    chart.draw_series(LineSeries::new(
+        times.iter().zip(max_watts.iter()).map(|(t, w)| (*t, *w)),
+        &BLUE,
+    ))?.label("Max Power (Watt)").legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+
+    chart.configure_series_labels()
+        .background_style(&WHITE.mix(0.8))
+        .border_style(&BLACK)
+        .label_font(("sans-serif", 18))
+        .draw()?;
+
+    Ok(())
 }
 
 impl Cli {
     pub fn execute(&self) -> Result<()> {
+        // Initialize database connection
+        let db_path = "./powerflow.db";
+        let conn = database::init_db(db_path)?;
+
         match &self.command {
             Some(Commands::Status) | None => {
-                // Default: show current status
-                self.show_status()
+                // 顯示目前電源資訊
+                let reading = powerflow_core::collect()?;
+                // Save to history
+                database::insert_reading(&conn, &reading)?;
+                if self.json {
+                    display::json::print_reading(&reading)?;
+                } else {
+                    display::human::print_reading(&reading);
+                }
+                Ok(())
             }
             Some(Commands::Watch { interval }) => {
-                self.watch_mode(*interval)
-            }
-        }
-    }
+                // 持續監控模式
+                use std::io;
+                use std::time::Duration;
+                use crossterm::{cursor, execute, terminal};
 
-    fn show_status(&self) -> Result<()> {
-        let reading = powerflow_core::collect()?;
+                let duration = Duration::from_secs(*interval);
 
-        if self.json {
-            display::json::print_reading(&reading)?;
-        } else {
-            display::human::print_reading(&reading);
-        }
-
-        Ok(())
-    }
-
-    fn watch_mode(&self, interval: u64) -> Result<()> {
-        use std::io;
-        use std::time::Duration;
-        use crossterm::{cursor, execute, terminal};
-
-        let duration = Duration::from_secs(interval);
-
-        loop {
-            if !self.json {
-                // Clear screen for human output
-                execute!(io::stdout(), terminal::Clear(terminal::ClearType::All))?;
-                execute!(io::stdout(), cursor::MoveTo(0, 0))?;
-            }
-
-            match powerflow_core::collect() {
-                Ok(reading) => {
-                    if self.json {
-                        display::json::print_reading(&reading)?;
-                    } else {
-                        display::human::print_reading(&reading);
+                loop {
+                    if !self.json {
+                        // Clear screen for human output
+                        execute!(io::stdout(), terminal::Clear(terminal::ClearType::All))?;
+                        execute!(io::stdout(), cursor::MoveTo(0, 0))?;
                     }
-                }
-                Err(e) => eprintln!("Error: {}", e),
-            }
 
-            std::thread::sleep(duration);
+                    match powerflow_core::collect() {
+                        Ok(reading) => {
+                            // Save to history
+                            database::insert_reading(&conn, &reading)?;
+                            if self.json {
+                                display::json::print_reading(&reading)?;
+                            } else {
+                                display::human::print_reading(&reading);
+                            }
+                        }
+                        Err(e) => eprintln!("Error: {}", e),
+                    }
+
+                    std::thread::sleep(duration);
+                }
+            }
+            Some(Commands::History { limit, json, plot, output }) => {
+                // 查詢歷史資料
+                let readings = database::query_history(&conn, *limit)?;
+                if *json {
+                    display::json::print_readings(&readings)?;
+                } else if *plot {
+                    plot_history_chart(&readings, output)?;
+                    println!("已輸出圖表至 {}", output);
+                } else {
+                    tui_history_chart(&readings)?;
+                }
+                Ok(())
+            }
         }
     }
+
 }

@@ -48,17 +48,32 @@ powerflow/
 ## CLI 功能範例
 
 ```bash
-$ powerflow
-⚡ 充電中
-   即時: 45.2W (67W max)
-   電池: 72%
-   電壓: 20.0V / 電流: 2.26A
-   充電器: Apple 67W USB-C Power Adapter
+# 顯示即時充電資訊
+$ powerflow status
 
-$ powerflow watch --interval 2  # 持續監控，每 2 秒更新
-$ powerflow --json              # JSON 輸出
-$ powerflow history             # 查看歷史（未來規劃）
+# 持續監控，每 2 秒更新
+$ powerflow watch --interval 2
+
+# 以 JSON 格式顯示即時資訊
+$ powerflow status --json
+
+# 查詢最近 20 筆歷史資料
+$ powerflow history
+
+# 查詢最近 50 筆歷史資料
+$ powerflow history --limit 50
+
+# 以 JSON 格式查詢最近 10 筆歷史資料
+$ powerflow history --limit 10 --json
 ```
+
+### 歷史資料說明
+
+- 所有即時資訊（status/watch）都會自動記錄到 SQLite 資料庫（`powerflow.db`）。
+- 可用 `history` 指令查詢過往資料，並以人類可讀或 JSON 格式輸出。
+- 支援自訂查詢筆數（`--limit`），預設 20 筆。
+- 支援 JSON 匯出（`--json`）。
+
 
 ## 資料模型
 
@@ -120,9 +135,9 @@ AppleSmartBattery:
 - [x] CLI 即時顯示充電資訊
 - [x] 持續監控模式（watch）
 - [x] 支援 JSON 輸出
-- [ ] 歷史資料記錄與查詢（未來規劃）
-- [ ] 整合 SQLite 資料庫（未來規劃）
-- [ ] 單元測試
+- [x] 歷史資料記錄與查詢
+- [x] 整合 SQLite 資料庫
+- [x] 單元測試
 
 ## 參考資源
 

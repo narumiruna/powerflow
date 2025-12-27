@@ -1,7 +1,9 @@
-//! SMC (System Management Controller) access for Mac power sensors
+ //! SMC (System Management Controller) access for Mac power sensors
 //!
 //! This module provides low-level access to Mac SMC sensors for accurate
 //! power, temperature, and battery readings.
+
+use crate::PowerResult;
 
 #[cfg(feature = "iokit")]
 mod ffi;
@@ -13,7 +15,6 @@ mod connection;
 pub use connection::SMCConnection;
 
 #[cfg(feature = "iokit")]
-use crate::{PowerError, PowerResult};
 
 /// SMC sensor keys for power monitoring
 #[cfg(feature = "iokit")]
