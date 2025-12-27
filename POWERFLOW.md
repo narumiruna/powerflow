@@ -1,5 +1,11 @@
 # Powerflow Code Guide
 
+## Recent Changes (2025-12-28)
+- Removed unused import (`PowerError`) from `crates/powerflow-core/src/collector/iokit.rs`
+- Updated CLI and SMC modules
+- Added new file: `crates/powerflow-cli/src/database.rs`
+- Modified: `CLAUDE.md`, `crates/powerflow-cli/Cargo.toml`, `crates/powerflow-cli/src/cli.rs`, `crates/powerflow-cli/src/display/json.rs`, `crates/powerflow-cli/src/main.rs`, `crates/powerflow-core/src/collector/smc/ffi.rs`, `crates/powerflow-core/src/collector/smc/mod.rs`
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

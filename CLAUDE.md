@@ -1,5 +1,11 @@
 # PowerFlow CLI
 
+## Recent Changes (2025-12-28)
+- Removed unused import (`PowerError`) from `crates/powerflow-core/src/collector/iokit.rs`
+- Updated CLI and SMC modules
+- Added new file: `crates/powerflow-cli/src/database.rs`
+- Modified: `CLAUDE.md`, `crates/powerflow-cli/Cargo.toml`, `crates/powerflow-cli/src/cli.rs`, `crates/powerflow-cli/src/display/json.rs`, `crates/powerflow-cli/src/main.rs`, `crates/powerflow-core/src/collector/smc/ffi.rs`, `crates/powerflow-core/src/collector/smc/mod.rs`
+
 本專案現已專注於 macOS 電源資訊的命令列工具（CLI），原 GUI 應用程式部分已移除。
 
 ## 專案目標
