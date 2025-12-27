@@ -2,6 +2,7 @@
 members = [
     "crates/powerflow-core",
     "crates/powerflow-cli",
+    "crates/powerflow-app",
 ]
 resolver = "2"
 

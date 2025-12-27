@@ -1,0 +1,33 @@
+[package]
+name = "powerflow-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Core library with IOKit support
+powerflow-core = { path = "../powerflow-core", features = ["iokit"] }
+
+# Tauri
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-shell = "2"
+
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Error handling
+thiserror = { workspace = true }
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

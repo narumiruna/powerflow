@@ -16,4 +16,15 @@ thiserror = { workspace = true }
 # plist parsing for ioreg output
 plist = "1.6"
 
+# IOKit/SMC (optional, for Phase 2)
+core-foundation = { version = "0.9", optional = true }
+core-foundation-sys = { version = "0.8", optional = true }
+io-kit-sys = { version = "0.4", optional = true }
+mach2 = { version = "0.4", optional = true }
+
 [dev-dependencies]
+
+[features]
+default = ["ioreg"]
+ioreg = []
+iokit = ["core-foundation", "core-foundation-sys", "io-kit-sys", "mach2"]

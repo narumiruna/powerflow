@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PowerFlow",
+  "identifier": "com.powerflow.app",
+  "version": "0.1.0",
+  "build": {
+    "frontendDist": "ui",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "PowerFlow",
+        "width": 400,
+        "height": 600,
+        "resizable": true,
+        "visible": true,
+        "decorations": true,
+        "transparent": false,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "macOSPrivateApi": false
+  },
+  "plugins": {}
+}

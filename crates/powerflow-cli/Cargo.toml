@@ -9,8 +9,8 @@ name = "powerflow"
 path = "src/main.rs"
 
 [dependencies]
-# Core library
-powerflow-core = { path = "../powerflow-core" }
+# Core library with IOKit support
+powerflow-core = { path = "../powerflow-core", features = ["iokit"] }
 
 # CLI framework
 clap = { version = "4.5", features = ["derive", "cargo"] }

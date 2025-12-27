@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 彩色閃電圖示 -->
+
+  <!-- 背景圓形 -->
+  <circle cx="32" cy="32" r="31" fill="#1F2937"/>
+
+  <!-- 漸層定義 -->
+  <defs>
+    <linearGradient id="lightning" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ADE80;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22C55E;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 閃電主體 -->
+  <path d="M 44 6 L 16 32 L 28 32 L 10 58 L 48 32 L 36 32 Z"
+        fill="url(#lightning)"
+        stroke="#FFFFFF"
+        stroke-width="2.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+
+  <!-- 高光效果 -->
+  <path d="M 42 6 L 20 30 L 27 30"
+        stroke="#FFFFFF"
+        stroke-width="2"
+        stroke-opacity="0.6"
+        fill="none"
+        stroke-linecap="round"/>
+</svg>
