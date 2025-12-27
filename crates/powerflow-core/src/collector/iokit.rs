@@ -5,9 +5,8 @@
 use crate::{
     collector::{ioreg::IORegCollector, PowerCollector},
     models::PowerReading,
-    PowerError, PowerResult,
+    PowerResult,
 };
-use chrono::Utc;
 
 #[cfg(feature = "iokit")]
 use super::smc::SMCPowerData;
