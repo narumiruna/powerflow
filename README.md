@@ -63,6 +63,25 @@ powerflow watch --interval 2
 
 Updates every 2 seconds (default). Press Ctrl+C to exit.
 
+### Query history with beautiful TUI output
+
+```bash
+powerflow history
+```
+
+Shows a three-section terminal UI:
+- **Statistics block**: Latest/oldest time, average/max/min power, average battery percent.
+- **Table block**: Latest 10 records (newest first) with time, power, negotiated power, voltage, amperage, battery percent, charging status.
+- **Chart block**: Power and max power line chart.
+
+You can use `--json` for JSON output, or `--plot` to export a PNG chart.
+
+Example:
+```
+powerflow history --json
+powerflow history --plot --output my-history.png
+```
+
 ## Requirements
 
 - macOS 12.0+ (Monterey or later)
