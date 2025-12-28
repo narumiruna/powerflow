@@ -133,8 +133,17 @@ PowerFlow uses two collectors with automatic fallback:
 
 ### Database
 
-All readings automatically saved to SQLite (`powerflow.db`):
+All readings automatically saved to SQLite:
 
+**Default location**: `~/.powerflow/powerflow.db`
+
+**Custom location** (via environment variable):
+```bash
+export POWERFLOW_DB_PATH=/path/to/custom.db
+powerflow
+```
+
+**Schema**:
 ```sql
 CREATE TABLE power_readings (
     id INTEGER PRIMARY KEY,

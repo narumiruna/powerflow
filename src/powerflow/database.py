@@ -3,6 +3,7 @@
 Matches Rust implementation from powerflow-cli/src/database.rs
 """
 
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -10,8 +11,30 @@ from typing import Optional
 
 from .models import PowerReading
 
+
+def get_default_db_path() -> Path:
+    """Get default database path.
+
+    Priority:
+    1. POWERFLOW_DB_PATH environment variable
+    2. ~/.powerflow/powerflow.db (default)
+
+    Returns:
+        Path to database file
+    """
+    # 1. Environment variable override
+    env_path = os.environ.get("POWERFLOW_DB_PATH")
+    if env_path:
+        return Path(env_path)
+
+    # 2. Default: ~/.powerflow/powerflow.db
+    db_dir = Path.home() / ".powerflow"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    return db_dir / "powerflow.db"
+
+
 # Default database path
-DB_PATH = Path("./powerflow.db")
+DB_PATH = get_default_db_path()
 
 
 class Database:

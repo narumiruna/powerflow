@@ -68,10 +68,11 @@ powerflow/
 │           ├── __init__.py
 │           ├── app.py          # Textual TUI application
 │           └── widgets.py      # LiveDataPanel, StatsPanel, ChartWidget
-├── tests/
-│   └── fixtures/
-│       └── real_mac.txt        # Sample ioreg output for testing
-└── powerflow.db                # SQLite database (auto-created)
+└── tests/
+    └── fixtures/
+        └── real_mac.txt        # Sample ioreg output for testing
+
+Database location: ~/.powerflow/powerflow.db (auto-created)
 ```
 
 ## Architecture Overview
@@ -157,7 +158,7 @@ class PowerReading:
 
 ### Database Schema
 
-All power readings are automatically saved to SQLite (`powerflow.db`):
+All power readings are automatically saved to SQLite at `~/.powerflow/powerflow.db` (configurable via `POWERFLOW_DB_PATH` environment variable):
 
 ```sql
 CREATE TABLE IF NOT EXISTS power_readings (
@@ -319,7 +320,7 @@ AppleRawAdapterDetails   → charger info array
 
 - `pyproject.toml`: Project configuration, dependencies, and scripts
 - `uv.lock`: Locked dependency versions
-- `powerflow.db`: SQLite database (auto-created, not in version control)
+- `~/.powerflow/powerflow.db`: SQLite database (auto-created in user's home directory)
 - `.pre-commit-config.yaml`: Pre-commit hooks (ruff, ty, typos)
 - `tests/fixtures/real_mac.txt`: Sample ioreg output for testing
 
