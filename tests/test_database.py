@@ -75,7 +75,7 @@ def test_insert_multiple_readings(database):
 
     # All insertions should succeed with unique IDs
     assert len(readings) == 5
-    assert len(set(r[0] for r in readings)) == 5  # All unique IDs
+    assert len({r[0] for r in readings}) == 5  # All unique IDs
 
 
 def test_query_history(database, sample_reading):
