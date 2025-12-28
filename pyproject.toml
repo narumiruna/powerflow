@@ -29,11 +29,28 @@ dev = [
     "ty>=0.0.7",
 ]
 
-[tool.bumpversion]
-current_version = "0.0.1"
-tag = true
-commit = true
-pre_commit_hooks = ["uv lock", "git add uv.lock"]
+[tool.ruff]
+exclude = ["build"]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "B",   # flake8-bugbear
+    "C",   # flake8-comprehensions
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+    "UP",  # pyupgrade
+    "W",   # pycodestyle warnings
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+
+[tool.ruff.lint.isort]
+force-single-line = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -50,5 +67,8 @@ addopts = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
-[tool.ruff.lint.isort]
-force-single-line = true
+[tool.bumpversion]
+current_version = "0.0.1"
+tag = true
+commit = true
+pre_commit_hooks = ["uv lock", "git add uv.lock"]
