@@ -187,7 +187,7 @@ powerflow/
 
 ```bash
 # Type checking
-uv run mypy src/
+uv run ty check .
 
 # Linting
 uv run ruff check src/
@@ -196,7 +196,7 @@ uv run ruff check src/
 uv run ruff format src/
 
 # Run all checks
-uv run mypy src/ && uv run ruff check src/ && uv run ruff format src/
+uv run ty check . && uv run ruff check src/ && uv run ruff format src/
 ```
 
 ### Testing

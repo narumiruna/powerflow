@@ -33,7 +33,7 @@ uv run python -c "from powerflow.collector import default_collector; default_col
 uv run pytest
 
 # Type checking
-uv run mypy src/
+uv run ty check .
 
 # Linting and formatting
 uv run ruff check src/
@@ -247,7 +247,7 @@ async def _collect_and_update(self) -> None:
 
 **Type Checking:**
 ```bash
-uv run mypy src/
+uv run ty check .
 ```
 
 **Linting:**
@@ -320,7 +320,7 @@ AppleRawAdapterDetails   → charger info array
 - `pyproject.toml`: Project configuration, dependencies, and scripts
 - `uv.lock`: Locked dependency versions
 - `powerflow.db`: SQLite database (auto-created, not in version control)
-- `.pre-commit-config.yaml`: Pre-commit hooks (ruff, mypy, typos)
+- `.pre-commit-config.yaml`: Pre-commit hooks (ruff, ty, typos)
 - `tests/fixtures/real_mac.txt`: Sample ioreg output for testing
 
 ## Performance Targets
