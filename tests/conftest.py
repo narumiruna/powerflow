@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for PowerFlow tests."""
+"""Pytest configuration and fixtures for powermonitor tests."""
 
 import tempfile
 from datetime import datetime, timezone
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from powerflow.database import Database
-from powerflow.models import PowerReading
+from powermonitor.database import Database
+from powermonitor.models import PowerReading
 
 
 @pytest.fixture

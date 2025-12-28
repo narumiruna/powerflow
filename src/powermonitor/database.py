@@ -1,6 +1,6 @@
-"""SQLite database operations for PowerFlow.
+"""SQLite database operations for powermonitor.
 
-Matches Rust implementation from powerflow-cli/src/database.rs
+Matches Rust implementation from powermonitor-cli/src/database.rs
 """
 
 import os
@@ -16,21 +16,21 @@ def get_default_db_path() -> Path:
     """Get default database path.
 
     Priority:
-    1. POWERFLOW_DB_PATH environment variable
-    2. ~/.powerflow/powerflow.db (default)
+    1. powermonitor_DB_PATH environment variable
+    2. ~/.powermonitor/powermonitor.db (default)
 
     Returns:
         Path to database file
     """
     # 1. Environment variable override
-    env_path = os.environ.get("POWERFLOW_DB_PATH")
+    env_path = os.environ.get("powermonitor_DB_PATH")
     if env_path:
         return Path(env_path)
 
-    # 2. Default: ~/.powerflow/powerflow.db
-    db_dir = Path.home() / ".powerflow"
+    # 2. Default: ~/.powermonitor/powermonitor.db
+    db_dir = Path.home() / ".powermonitor"
     db_dir.mkdir(parents=True, exist_ok=True)
-    return db_dir / "powerflow.db"
+    return db_dir / "powermonitor.db"
 
 
 # Default database path

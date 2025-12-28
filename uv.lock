@@ -181,7 +181,7 @@ wheels = [
 ]
 
 [[package]]
-name = "powerflow"
+name = "powermonitor"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [

@@ -1,4 +1,4 @@
-"""Logging configuration for PowerFlow using loguru."""
+"""Logging configuration for powermonitor using loguru."""
 
 import sys
 from pathlib import Path
@@ -7,11 +7,11 @@ from loguru import logger
 
 
 def setup_logger(level: str = "INFO", log_to_file: bool = True) -> None:
-    """Configure loguru logger for PowerFlow.
+    """Configure loguru logger for powermonitor.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
-        log_to_file: Whether to log to file in ~/.powerflow/
+        log_to_file: Whether to log to file in ~/.powermonitor/
 
     Features:
         - Console output for WARNING and above
@@ -31,9 +31,9 @@ def setup_logger(level: str = "INFO", log_to_file: bool = True) -> None:
 
     # File handler (all levels)
     if log_to_file:
-        log_dir = Path.home() / ".powerflow"
+        log_dir = Path.home() / ".powermonitor"
         log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / "powerflow.log"
+        log_file = log_dir / "powermonitor.log"
 
         logger.add(
             log_file,

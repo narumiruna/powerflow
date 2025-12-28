@@ -1,4 +1,4 @@
-# PowerFlow
+# powermonitor
 
 macOS power monitoring tool with auto-updating TUI for real-time battery and charging status.
 
@@ -24,24 +24,24 @@ macOS power monitoring tool with auto-updating TUI for real-time battery and cha
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd powerflow
+cd powermonitor
 
 # Install dependencies
 uv sync
 
-# Run PowerFlow
-uv run powerflow
+# Run powermonitor
+uv run powermonitor
 ```
 
 ### Install as a package
 
 ```bash
 # Install from source
-cd powerflow
+cd powermonitor
 uv pip install -e .
 
 # Run from anywhere
-powerflow
+powermonitor
 ```
 
 ## Usage
@@ -50,13 +50,13 @@ powerflow
 
 ```bash
 # Single command launches auto-updating TUI
-powerflow
+powermonitor
 ```
 
 The TUI displays:
 
 ```
-┌─ PowerFlow ──────────────────────────────┐
+┌─ powermonitor ──────────────────────────────┐
 │ Real-Time Power                           │
 │ ⚡ 45.2W / 67W    🔋 72%    ⚡ Charging   │
 │ 20.0V × 2.26A                             │
@@ -83,10 +83,10 @@ The TUI displays:
 
 ```bash
 # Run with verbose collector info
-uv run python -c "from powerflow.collector import default_collector; collector = default_collector(verbose=True); print(collector.collect())"
+uv run python -c "from powermonitor.collector import default_collector; collector = default_collector(verbose=True); print(collector.collect())"
 
 # Test data collection
-uv run python -c "from powerflow.collector import default_collector; print(default_collector().collect())"
+uv run python -c "from powermonitor.collector import default_collector; print(default_collector().collect())"
 ```
 
 ## Requirements
@@ -119,7 +119,7 @@ uv run python -c "from powerflow.collector import default_collector; print(defau
 
 ### Data Collection
 
-PowerFlow uses two collectors with automatic fallback:
+powermonitor uses two collectors with automatic fallback:
 
 1. **IOKitCollector** (preferred) - Direct IOKit/SMC API via ctypes
    - Reads 7 SMC sensors: PPBR, PDTR, PSTR, PHPC, PDBR, TB0T, CHCC
@@ -135,12 +135,12 @@ PowerFlow uses two collectors with automatic fallback:
 
 All readings automatically saved to SQLite:
 
-**Default location**: `~/.powerflow/powerflow.db`
+**Default location**: `~/.powermonitor/powermonitor.db`
 
 **Custom location** (via environment variable):
 ```bash
-export POWERFLOW_DB_PATH=/path/to/custom.db
-powerflow
+export powermonitor_DB_PATH=/path/to/custom.db
+powermonitor
 ```
 
 **Schema**:
@@ -165,11 +165,11 @@ CREATE TABLE power_readings (
 ## Project Structure
 
 ```
-powerflow/
+powermonitor/
 ├── pyproject.toml              # uv project config
 ├── uv.lock                     # Dependency lock file
 ├── src/
-│   └── powerflow/
+│   └── powermonitor/
 │       ├── cli.py              # Entry point
 │       ├── models.py           # PowerReading dataclass
 │       ├── database.py         # SQLite operations
@@ -184,7 +184,7 @@ powerflow/
 │       │       ├── connection.py # SMCConnection
 │       │       └── collector.py # IOKitCollector
 │       └── tui/                # Textual TUI
-│           ├── app.py          # PowerFlowApp
+│           ├── app.py          # powermonitorApp
 │           └── widgets.py      # Custom widgets
 └── tests/
     └── fixtures/               # Test data
@@ -215,7 +215,7 @@ uv run ty check . && uv run ruff check src/ && uv run ruff format src/
 uv run pytest
 
 # Manual testing
-uv run powerflow
+uv run powermonitor
 ```
 
 ## Performance

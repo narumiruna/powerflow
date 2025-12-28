@@ -4,8 +4,8 @@ import sqlite3
 from datetime import datetime, timezone, timedelta
 
 
-from powerflow.database import Database
-from powerflow.models import PowerReading
+from powermonitor.database import Database
+from powermonitor.models import PowerReading
 
 
 def test_database_initialization(database, temp_db):

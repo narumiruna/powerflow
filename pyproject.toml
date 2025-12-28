@@ -1,5 +1,5 @@
 [project]
-name = "powerflow"
+name = "powermonitor"
 version = "0.0.1"
 description = "macOS power monitoring tool with auto-updating TUI"
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-powerflow = "powerflow.cli:main"
+powermonitor = "powermonitor.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8.17,<0.9.0"]
@@ -43,7 +43,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=powerflow",
+    "--cov=powermonitor",
     "--cov-report=term-missing",
 ]
 asyncio_mode = "auto"

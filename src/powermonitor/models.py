@@ -1,4 +1,4 @@
-"""Data models for PowerFlow - matches Rust implementation exactly."""
+"""Data models for powermonitor - matches Rust implementation exactly."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -8,7 +8,7 @@ from datetime import datetime
 class PowerReading:
     """Real-time power reading snapshot - matches Rust PowerReading struct exactly.
 
-    All 12 fields correspond to the Rust implementation in powerflow-core/src/models.rs
+    All 12 fields correspond to the Rust implementation in powermonitor-core/src/models.rs
     """
 
     # Timestamp

@@ -1,4 +1,4 @@
-"""Reactive widgets for PowerFlow TUI."""
+"""Reactive widgets for powermonitor TUI."""
 
 from textual.app import ComposeResult
 from textual.containers import Container

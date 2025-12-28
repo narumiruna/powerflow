@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 
-from powerflow.models import PowerReading
+from powermonitor.models import PowerReading
 
 
 def test_power_reading_creation(sample_reading):

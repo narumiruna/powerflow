@@ -1,1 +1,1 @@
-"""PowerFlow test suite."""
+"""powermonitor test suite."""

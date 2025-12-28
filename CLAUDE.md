@@ -4,20 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PowerFlow is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
+powermonitor is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
 
 **Current Status**: Fully migrated from Rust to Python. Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
 
 ## Essential Commands
 
-### Running PowerFlow
+### Running powermonitor
 
 ```bash
 # Launch the auto-updating TUI
-powerflow
+powermonitor
 
 # Or using uv:
-uv run powerflow
+uv run powermonitor
 ```
 
 ### Development
@@ -27,7 +27,7 @@ uv run powerflow
 uv sync
 
 # Run with verbose collector info (debug mode)
-uv run python -c "from powerflow.collector import default_collector; default_collector(verbose=True).collect()"
+uv run python -c "from powermonitor.collector import default_collector; default_collector(verbose=True).collect()"
 
 # Run tests (when available)
 uv run pytest
@@ -43,11 +43,11 @@ uv run ruff format src/
 ## Project Structure
 
 ```
-powerflow/
+powermonitor/
 ├── pyproject.toml              # uv project configuration
 ├── uv.lock                     # Dependency lock file
 ├── src/
-│   └── powerflow/
+│   └── powermonitor/
 │       ├── __init__.py
 │       ├── cli.py              # Entry point (launches TUI)
 │       ├── models.py           # PowerReading dataclass (12 fields)
@@ -72,14 +72,14 @@ powerflow/
     └── fixtures/
         └── real_mac.txt        # Sample ioreg output for testing
 
-Database location: ~/.powerflow/powerflow.db (auto-created)
+Database location: ~/.powermonitor/powermonitor.db (auto-created)
 ```
 
 ## Architecture Overview
 
 ### TUI Application
 
-PowerFlow uses **Textual** for the TUI with a 3-panel auto-updating layout:
+powermonitor uses **Textual** for the TUI with a 3-panel auto-updating layout:
 
 1. **LiveDataPanel** (green border): Real-time power metrics
    - Status indicator: ⚡ Charging / 🔌 AC Power / 🔋 On Battery
@@ -105,7 +105,7 @@ PowerFlow uses **Textual** for the TUI with a 3-panel auto-updating layout:
 
 ### Data Collection Strategy
 
-PowerFlow uses the **Strategy Pattern** via the `PowerCollector` protocol:
+powermonitor uses the **Strategy Pattern** via the `PowerCollector` protocol:
 
 ```python
 class PowerCollector(Protocol):
@@ -118,18 +118,18 @@ class PowerCollector(Protocol):
    - Reads 7 SMC sensors: PPBR, PDTR, PSTR, PHPC, PDBR, TB0T, CHCC
    - Uses PDTR (Power Delivery/Input Rate) for most accurate watts_actual
    - Falls back to IORegCollector on error
-   - Location: `src/powerflow/collector/iokit/collector.py`
+   - Location: `src/powermonitor/collector/iokit/collector.py`
 
 2. **IORegCollector** (fallback): Parses `ioreg -rw0 -c AppleSmartBattery -a` output
    - No special permissions required
    - Uses plistlib to parse XML output
-   - Location: `src/powerflow/collector/ioreg.py`
+   - Location: `src/powermonitor/collector/ioreg.py`
 
 The `default_collector()` function tries IOKitCollector first, automatically falling back to IORegCollector if SMC sensors are unavailable.
 
 ### Data Models
 
-Core data structure is `PowerReading` (defined in `src/powerflow/models.py`):
+Core data structure is `PowerReading` (defined in `src/powermonitor/models.py`):
 
 ```python
 @dataclass
@@ -158,7 +158,7 @@ class PowerReading:
 
 ### Database Schema
 
-All power readings are automatically saved to SQLite at `~/.powerflow/powerflow.db` (configurable via `POWERFLOW_DB_PATH` environment variable):
+All power readings are automatically saved to SQLite at `~/.powermonitor/powermonitor.db` (configurable via `powermonitor_DB_PATH` environment variable):
 
 ```sql
 CREATE TABLE IF NOT EXISTS power_readings (
@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS power_readings (
 CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 ```
 
-**Database operations** (`src/powerflow/database.py`):
+**Database operations** (`src/powermonitor/database.py`):
 - `insert_reading()`: Save PowerReading to database
 - `query_history(limit=60)`: Retrieve last N readings
 - `get_statistics(limit=100)`: Calculate avg/min/max stats
@@ -187,17 +187,17 @@ CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 
 ### IOKit/SMC FFI Implementation
 
-PowerFlow uses **ctypes** for direct macOS IOKit/SMC access:
+powermonitor uses **ctypes** for direct macOS IOKit/SMC access:
 
-**Bindings** (`src/powerflow/collector/iokit/bindings.py`):
+**Bindings** (`src/powermonitor/collector/iokit/bindings.py`):
 - 9 IOKit functions: IOMasterPort, IOServiceMatching, IOConnectCallStructMethod, etc.
 - Handles mach_task_self() as a global variable (not function)
 
-**Structures** (`src/powerflow/collector/iokit/structures.py`):
+**Structures** (`src/powermonitor/collector/iokit/structures.py`):
 - SMCKeyData, KeyInfo, SMCVersion, SMCPLimitData (all packed structs)
 - Helper functions: str_to_key(), key_to_str(), type_to_str()
 
-**Parser** (`src/powerflow/collector/iokit/parser.py`):
+**Parser** (`src/powermonitor/collector/iokit/parser.py`):
 - `bytes_to_float()` supporting 13 SMC data types:
   - Signed fixed-point: sp78, sp87, sp96, spa5, spb4, spf0 (divide by 256)
   - Unsigned fixed-point: fp88, fp79, fp6a, fp4c (divide by 256)
@@ -261,32 +261,32 @@ uv run ruff format src/
 
 **To add a new data field to PowerReading:**
 
-1. Update `PowerReading` dataclass in `src/powerflow/models.py`
+1. Update `PowerReading` dataclass in `src/powermonitor/models.py`
 2. Update `IORegBattery` dataclass if parsing from ioreg
 3. Modify conversion in `IORegCollector._parse_battery_data()`
-4. Update database schema in `src/powerflow/database.py`
-5. Update display in `src/powerflow/tui/widgets.py`
+4. Update database schema in `src/powermonitor/database.py`
+5. Update display in `src/powermonitor/tui/widgets.py`
 6. Run type checking and linting
 
 **To add a new SMC sensor:**
 
-1. Add sensor key to `SMC_SENSORS` dict in `src/powerflow/collector/iokit/collector.py`
+1. Add sensor key to `SMC_SENSORS` dict in `src/powermonitor/collector/iokit/collector.py`
 2. Add field to `SMCPowerData` dataclass
 3. Update `_read_smc_sensors()` to read the new sensor
 4. Use the value in `_collect_with_smc()` if needed
 
 **To add a new TUI widget:**
 
-1. Create widget class in `src/powerflow/tui/widgets.py`
-2. Add to layout in `PowerFlowApp.compose()` in `src/powerflow/tui/app.py`
+1. Create widget class in `src/powermonitor/tui/widgets.py`
+2. Add to layout in `powermonitorApp.compose()` in `src/powermonitor/tui/app.py`
 3. Update widget in `_update_all_widgets()`
-4. Add CSS styling to `PowerFlowApp.CSS`
+4. Add CSS styling to `powermonitorApp.CSS`
 
 ### Testing
 
 - Test fixtures available in `tests/fixtures/real_mac.txt`
 - Use `uv run pytest` when tests are added
-- Manual testing: `uv run powerflow`
+- Manual testing: `uv run powermonitor`
 
 ### macOS Power Data Sources
 
@@ -320,7 +320,7 @@ AppleRawAdapterDetails   → charger info array
 
 - `pyproject.toml`: Project configuration, dependencies, and scripts
 - `uv.lock`: Locked dependency versions
-- `~/.powerflow/powerflow.db`: SQLite database (auto-created in user's home directory)
+- `~/.powermonitor/powermonitor.db`: SQLite database (auto-created in user's home directory)
 - `.pre-commit-config.yaml`: Pre-commit hooks (ruff, ty, typos)
 - `tests/fixtures/real_mac.txt`: Sample ioreg output for testing
 

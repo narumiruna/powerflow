@@ -1,4 +1,4 @@
-"""PowerFlow Textual TUI Application - auto-updating power monitoring interface."""
+"""powermonitor Textual TUI Application - auto-updating power monitoring interface."""
 
 import asyncio
 from typing import Optional
@@ -14,8 +14,8 @@ from ..models import PowerReading
 from .widgets import LiveDataPanel, StatsPanel, ChartWidget
 
 
-class PowerFlowApp(App):
-    """PowerFlow TUI application with auto-updating power data.
+class powermonitorApp(App):
+    """powermonitor TUI application with auto-updating power data.
 
     Features:
     - Real-time power monitoring (updates every 2s)
@@ -58,7 +58,7 @@ class PowerFlowApp(App):
         Binding("c", "clear_history", "Clear History", key_display="C"),
     ]
 
-    TITLE = "PowerFlow - macOS Power Monitoring"
+    TITLE = "powermonitor - macOS Power Monitoring"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -188,8 +188,8 @@ class PowerFlowApp(App):
 
 
 def run_app() -> None:
-    """Run the PowerFlow TUI app."""
-    app = PowerFlowApp()
+    """Run the powermonitor TUI app."""
+    app = powermonitorApp()
     app.run()
 
 

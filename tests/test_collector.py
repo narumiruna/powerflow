@@ -5,8 +5,8 @@ from datetime import datetime
 
 import pytest
 
-from powerflow.collector.ioreg import IORegCollector
-from powerflow.models import PowerReading
+from powermonitor.collector.ioreg import IORegCollector
+from powermonitor.models import PowerReading
 
 
 def test_ioreg_collector_with_real_data(ioreg_fixture_path):
@@ -214,7 +214,7 @@ def test_ioreg_collector_full_battery():
 
 def test_collector_factory():
     """Test default_collector factory function."""
-    from powerflow.collector import default_collector
+    from powermonitor.collector import default_collector
 
     collector = default_collector()
 
@@ -229,7 +229,7 @@ def test_collector_factory():
 )
 def test_iokit_collector_live():
     """Test IOKitCollector with live system data (macOS only)."""
-    from powerflow.collector.iokit import IOKitCollector
+    from powermonitor.collector.iokit import IOKitCollector
 
     collector = IOKitCollector(verbose=False)
 

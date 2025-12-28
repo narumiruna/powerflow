@@ -1,6 +1,6 @@
 """Collector factory - provides default collector based on platform and capabilities.
 
-Matches Rust implementation from powerflow-core/src/collector/mod.rs
+Matches Rust implementation from powermonitor-core/src/collector/mod.rs
 """
 
 import sys
@@ -27,7 +27,7 @@ def default_collector(verbose: bool = False) -> PowerCollector:
         RuntimeError: If platform is not macOS
     """
     if sys.platform != "darwin":
-        raise RuntimeError("PowerFlow only supports macOS")
+        raise RuntimeError("powermonitor only supports macOS")
 
     # Try IOKitCollector first (direct SMC access for better accuracy)
     # Falls back to IORegCollector if SMC access fails

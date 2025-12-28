@@ -1,6 +1,6 @@
 """IORegCollector - subprocess-based power collector using ioreg command.
 
-Matches Rust implementation from powerflow-core/src/collector/ioreg.rs
+Matches Rust implementation from powermonitor-core/src/collector/ioreg.rs
 """
 
 import plistlib
@@ -16,7 +16,7 @@ class IORegCollector:
     This is the fallback collector that doesn't require IOKit permissions.
     Executes `ioreg -rw0 -c AppleSmartBattery -a` and parses the plist output.
 
-    Matches Rust's IORegCollector from powerflow-core/src/collector/ioreg.rs
+    Matches Rust's IORegCollector from powermonitor-core/src/collector/ioreg.rs
     """
 
     def collect(self) -> PowerReading:

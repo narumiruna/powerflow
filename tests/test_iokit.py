@@ -4,8 +4,8 @@ import struct
 
 import pytest
 
-from powerflow.collector.iokit.parser import bytes_to_float
-from powerflow.collector.iokit.structures import str_to_key, key_to_str, type_to_str
+from powermonitor.collector.iokit.parser import bytes_to_float
+from powermonitor.collector.iokit.structures import str_to_key, key_to_str, type_to_str
 
 
 def test_str_to_key():
@@ -155,7 +155,7 @@ def test_bytes_to_float_all_fixed_point_types():
 )
 def test_smc_connection_live():
     """Test SMC connection with live system (macOS only)."""
-    from powerflow.collector.iokit import SMCConnection
+    from powermonitor.collector.iokit import SMCConnection
 
     try:
         with SMCConnection() as smc:
