@@ -6,8 +6,7 @@ from datetime import datetime
 
 @dataclass
 class PowerReading:
-    """Real-time power reading snapshot.
-    """
+    """Real-time power reading snapshot."""
 
     # Timestamp
     timestamp: datetime

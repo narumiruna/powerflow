@@ -4,7 +4,7 @@ import plistlib
 import subprocess
 from datetime import datetime, timezone
 
-from ..models import PowerReading, CommandFailedError, ParseError, MissingFieldError
+from ..models import CommandFailedError, MissingFieldError, ParseError, PowerReading
 
 
 class IORegCollector:
