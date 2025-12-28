@@ -2,29 +2,25 @@
 
 import ctypes
 
-from .bindings import (
-    KERN_SUCCESS,
-    IOMasterPort,
-    IOServiceMatching,
-    IOServiceGetMatchingServices,
-    IOIteratorNext,
-    IOObjectRelease,
-    IOServiceOpen,
-    IOServiceClose,
-    IOConnectCallStructMethod,
-    mach_task_self,
-)
-from .structures import (
-    SMCKeyData,
-    KeyInfo,
-    str_to_key,
-    key_to_str,
-    type_to_str,
-    KERNEL_INDEX_SMC,
-    SMC_CMD_READ_KEYINFO,
-    SMC_CMD_READ_BYTES,
-)
+from .bindings import KERN_SUCCESS
+from .bindings import IOConnectCallStructMethod
+from .bindings import IOIteratorNext
+from .bindings import IOMasterPort
+from .bindings import IOObjectRelease
+from .bindings import IOServiceClose
+from .bindings import IOServiceGetMatchingServices
+from .bindings import IOServiceMatching
+from .bindings import IOServiceOpen
+from .bindings import mach_task_self
 from .parser import bytes_to_float
+from .structures import KERNEL_INDEX_SMC
+from .structures import SMC_CMD_READ_BYTES
+from .structures import SMC_CMD_READ_KEYINFO
+from .structures import KeyInfo
+from .structures import SMCKeyData
+from .structures import key_to_str
+from .structures import str_to_key
+from .structures import type_to_str
 
 
 class SMCError(Exception):

@@ -1,6 +1,6 @@
 """IOKit/SMC FFI bindings for macOS power monitoring."""
 
-from .connection import SMCConnection
 from .collector import IOKitCollector
+from .connection import SMCConnection
 
 __all__ = ["SMCConnection", "IOKitCollector"]

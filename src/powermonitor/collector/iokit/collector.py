@@ -1,15 +1,15 @@
 """IOKit-based power collector using SMC sensors."""
 
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 from loguru import logger
 
 from ...models import PowerReading
 from ..base import PowerCollector
 from ..ioreg import IORegCollector
-from .connection import SMCConnection, SMCError
-
+from .connection import SMCConnection
+from .connection import SMCError
 
 # SMC sensor keys for power monitoring
 SMC_SENSORS = {

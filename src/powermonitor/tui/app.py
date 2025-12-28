@@ -3,15 +3,20 @@
 import asyncio
 from typing import Optional
 
-from textual.app import App, ComposeResult
+from textual.app import App
+from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
-from textual.widgets import Header, Footer
+from textual.widgets import Footer
+from textual.widgets import Header
 
 from ..collector import default_collector
-from ..database import Database, DB_PATH
+from ..database import DB_PATH
+from ..database import Database
 from ..models import PowerReading
-from .widgets import LiveDataPanel, StatsPanel, ChartWidget
+from .widgets import ChartWidget
+from .widgets import LiveDataPanel
+from .widgets import StatsPanel
 
 
 class powermonitorApp(App):

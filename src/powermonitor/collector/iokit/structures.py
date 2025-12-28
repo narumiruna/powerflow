@@ -1,6 +1,9 @@
 """SMC data structures matching the C layout."""
 
-from ctypes import Structure, c_uint8, c_uint16, c_uint32
+from ctypes import Structure
+from ctypes import c_uint8
+from ctypes import c_uint16
+from ctypes import c_uint32
 
 # SMC Constants
 KERNEL_INDEX_SMC = 2

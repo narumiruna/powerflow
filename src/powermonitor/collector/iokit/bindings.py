@@ -1,6 +1,12 @@
 """ctypes bindings for IOKit framework."""
 
-from ctypes import CDLL, c_void_p, c_uint32, c_uint, c_int, c_char_p, POINTER
+from ctypes import CDLL
+from ctypes import POINTER
+from ctypes import c_char_p
+from ctypes import c_int
+from ctypes import c_uint
+from ctypes import c_uint32
+from ctypes import c_void_p
 
 # Load IOKit framework
 iokit = CDLL("/System/Library/Frameworks/IOKit.framework/IOKit")
