@@ -1,4 +1,4 @@
-"""Data models for powermonitor - matches Rust implementation exactly."""
+"""Data models for powermonitor."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -6,9 +6,7 @@ from datetime import datetime
 
 @dataclass
 class PowerReading:
-    """Real-time power reading snapshot - matches Rust PowerReading struct exactly.
-
-    All 12 fields correspond to the Rust implementation in powermonitor-core/src/models.rs
+    """Real-time power reading snapshot.
     """
 
     # Timestamp
@@ -51,7 +49,7 @@ class PowerReading:
 
 @dataclass
 class AdapterDetail:
-    """Raw adapter details from ioreg - matches Rust AdapterDetail struct."""
+    """Raw adapter details from ioreg."""
 
     watts: int | None  # Negotiated power (W)
     name: str | None  # Charger name

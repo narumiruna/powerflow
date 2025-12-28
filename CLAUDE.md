@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 powermonitor is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
 
-**Current Status**: Fully migrated from Rust to Python. Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
+**Current Status**: Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
 
 ## Essential Commands
 

@@ -1,7 +1,4 @@
-"""SQLite database operations for powermonitor.
-
-Matches Rust implementation from powermonitor-cli/src/database.rs
-"""
+"""SQLite database operations for powermonitor."""
 
 import os
 import sqlite3
@@ -52,7 +49,7 @@ class Database:
     def _init_schema(self) -> None:
         """Create database schema if it doesn't exist.
 
-        Complete schema with all 12 PowerReading fields to match Rust implementation.
+        Complete schema with all 12 PowerReading fields.
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()

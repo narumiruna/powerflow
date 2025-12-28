@@ -214,9 +214,9 @@ uv run powermonitor
 
 ## Migration Notes
 
-This project was fully migrated from Rust to Python (December 2025):
 
-- **From**: Rust CLI with separate `status`, `watch`, `history` commands
+
+
 - **To**: Python TUI with unified auto-updating interface
 - **Reason**: Better rapid development, easier maintenance, similar performance for 2s intervals
 - **Preserved**: All data collection logic, database schema, SMC sensor access (via ctypes)

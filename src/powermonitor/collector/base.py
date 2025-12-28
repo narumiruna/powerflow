@@ -8,7 +8,7 @@ from ..models import PowerReading
 class PowerCollector(Protocol):
     """Protocol for power data collectors.
 
-    Matches Rust's PowerCollector trait from powermonitor-core/src/collector/mod.rs
+    # PowerCollector trait details
     """
 
     def collect(self) -> PowerReading:

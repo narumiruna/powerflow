@@ -1,7 +1,4 @@
-"""Collector factory - provides default collector based on platform and capabilities.
-
-Matches Rust implementation from powermonitor-core/src/collector/mod.rs
-"""
+"""Collector factory - provides default collector based on platform and capabilities."""
 
 import sys
 

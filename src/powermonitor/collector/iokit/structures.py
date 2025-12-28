@@ -14,7 +14,7 @@ SMC_BYTES_SIZE = 32
 class SMCVersion(Structure):
     """SMC version structure."""
 
-    _pack_ = 1  # Matches Rust #[repr(C, packed)]
+    _pack_ = 1  # Packed C struct
     _fields_ = [
         ("major", c_uint8),
         ("minor", c_uint8),
