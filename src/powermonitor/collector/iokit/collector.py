@@ -1,7 +1,6 @@
 """IOKit-based power collector using SMC sensors."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from loguru import logger
 
@@ -27,13 +26,13 @@ SMC_SENSORS = {
 class SMCPowerData:
     """SMC power sensor readings."""
 
-    battery_power: Optional[float] = None  # PPBR
-    power_input: Optional[float] = None  # PDTR (most accurate)
-    system_power: Optional[float] = None  # PSTR
-    heatpipe_power: Optional[float] = None  # PHPC
-    display_power: Optional[float] = None  # PDBR
-    battery_temp: Optional[float] = None  # TB0T
-    charging_status: Optional[float] = None  # CHCC
+    battery_power: float | None = None  # PPBR
+    power_input: float | None = None  # PDTR (most accurate)
+    system_power: float | None = None  # PSTR
+    heatpipe_power: float | None = None  # PHPC
+    display_power: float | None = None  # PDBR
+    battery_temp: float | None = None  # TB0T
+    charging_status: float | None = None  # CHCC
 
 
 class IOKitCollector(PowerCollector):
