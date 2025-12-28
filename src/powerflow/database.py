@@ -1,0 +1,304 @@
+"""SQLite database operations for PowerFlow.
+
+Matches Rust implementation from powerflow-cli/src/database.rs
+"""
+
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from .models import PowerReading
+
+# Default database path
+DB_PATH = Path("./powerflow.db")
+
+
+class Database:
+    """SQLite database manager for power readings."""
+
+    def __init__(self, db_path: Path | str = DB_PATH):
+        """Initialize database connection.
+
+        Args:
+            db_path: Path to SQLite database file
+        """
+        self.db_path = Path(db_path)
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        """Create database schema if it doesn't exist.
+
+        Complete schema with all 12 PowerReading fields to match Rust implementation.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Create table with all 12 fields (was missing 4 fields in old version)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS power_readings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                watts_actual REAL NOT NULL,
+                watts_negotiated INTEGER NOT NULL,
+                voltage REAL NOT NULL,
+                amperage REAL NOT NULL,
+                current_capacity INTEGER NOT NULL,
+                max_capacity INTEGER NOT NULL,
+                battery_percent INTEGER NOT NULL,
+                is_charging INTEGER NOT NULL,
+                external_connected INTEGER NOT NULL,
+                charger_name TEXT,
+                charger_manufacturer TEXT
+            )
+        """)
+
+        # Create index on timestamp for faster queries
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_timestamp
+            ON power_readings(timestamp DESC)
+        """)
+
+        conn.commit()
+        conn.close()
+
+    def insert_reading(self, reading: PowerReading) -> int:
+        """Insert power reading into database.
+
+        Args:
+            reading: PowerReading to insert
+
+        Returns:
+            Row ID of inserted reading
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO power_readings (
+                timestamp,
+                watts_actual,
+                watts_negotiated,
+                voltage,
+                amperage,
+                current_capacity,
+                max_capacity,
+                battery_percent,
+                is_charging,
+                external_connected,
+                charger_name,
+                charger_manufacturer
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                reading.timestamp.isoformat(),  # RFC3339 format
+                reading.watts_actual,
+                reading.watts_negotiated,
+                reading.voltage,
+                reading.amperage,
+                reading.current_capacity,
+                reading.max_capacity,
+                reading.battery_percent,
+                1 if reading.is_charging else 0,
+                1 if reading.external_connected else 0,
+                reading.charger_name,
+                reading.charger_manufacturer,
+            ),
+        )
+
+        row_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return row_id
+
+    def query_history(self, limit: int = 20) -> list[PowerReading]:
+        """Query most recent power readings.
+
+        Args:
+            limit: Maximum number of readings to return
+
+        Returns:
+            List of PowerReading objects, ordered by timestamp DESC
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                timestamp,
+                watts_actual,
+                watts_negotiated,
+                voltage,
+                amperage,
+                current_capacity,
+                max_capacity,
+                battery_percent,
+                is_charging,
+                external_connected,
+                charger_name,
+                charger_manufacturer
+            FROM power_readings
+            ORDER BY timestamp DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        # Convert rows to PowerReading objects
+        readings = []
+        for row in rows:
+            readings.append(
+                PowerReading(
+                    timestamp=datetime.fromisoformat(row[0]),
+                    watts_actual=row[1],
+                    watts_negotiated=row[2],
+                    voltage=row[3],
+                    amperage=row[4],
+                    current_capacity=row[5],
+                    max_capacity=row[6],
+                    battery_percent=row[7],
+                    is_charging=bool(row[8]),
+                    external_connected=bool(row[9]),
+                    charger_name=row[10],
+                    charger_manufacturer=row[11],
+                )
+            )
+
+        return readings
+
+    def get_statistics(self, limit: int = 100) -> dict:
+        """Calculate statistics from recent readings.
+
+        Args:
+            limit: Number of recent readings to include in statistics
+
+        Returns:
+            Dictionary with avg, min, max power and battery stats
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                AVG(watts_actual) as avg_watts,
+                MIN(watts_actual) as min_watts,
+                MAX(watts_actual) as max_watts,
+                AVG(battery_percent) as avg_battery,
+                MIN(timestamp) as earliest,
+                MAX(timestamp) as latest,
+                COUNT(*) as count
+            FROM (
+                SELECT watts_actual, battery_percent, timestamp
+                FROM power_readings
+                ORDER BY timestamp DESC
+                LIMIT ?
+            )
+            """,
+            (limit,),
+        )
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row and row[6] > 0:  # count > 0
+            return {
+                "avg_watts": row[0] or 0.0,
+                "min_watts": row[1] or 0.0,
+                "max_watts": row[2] or 0.0,
+                "avg_battery": row[3] or 0.0,
+                "earliest": row[4],
+                "latest": row[5],
+                "count": row[6],
+            }
+
+        return {
+            "avg_watts": 0.0,
+            "min_watts": 0.0,
+            "max_watts": 0.0,
+            "avg_battery": 0.0,
+            "earliest": None,
+            "latest": None,
+            "count": 0,
+        }
+
+    def clear_history(self) -> int:
+        """Clear all power readings from database.
+
+        Returns:
+            Number of rows deleted
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM power_readings")
+        rows_deleted = cursor.rowcount
+
+        conn.commit()
+        conn.close()
+
+        return rows_deleted
+
+
+# Module-level convenience functions
+_default_db: Optional[Database] = None
+
+
+def get_database(db_path: Path | str = DB_PATH) -> Database:
+    """Get default database instance (singleton pattern).
+
+    Args:
+        db_path: Path to database file
+
+    Returns:
+        Database instance
+    """
+    global _default_db
+    if _default_db is None:
+        _default_db = Database(db_path)
+    return _default_db
+
+
+def insert_reading(reading: PowerReading, db_path: Path | str = DB_PATH) -> int:
+    """Convenience function to insert reading using default database.
+
+    Args:
+        reading: PowerReading to insert
+        db_path: Path to database file
+
+    Returns:
+        Row ID of inserted reading
+    """
+    return get_database(db_path).insert_reading(reading)
+
+
+def query_history(limit: int = 20, db_path: Path | str = DB_PATH) -> list[PowerReading]:
+    """Convenience function to query history using default database.
+
+    Args:
+        limit: Maximum number of readings
+        db_path: Path to database file
+
+    Returns:
+        List of PowerReading objects
+    """
+    return get_database(db_path).query_history(limit)
+
+
+def get_statistics(limit: int = 100, db_path: Path | str = DB_PATH) -> dict:
+    """Convenience function to get statistics using default database.
+
+    Args:
+        limit: Number of recent readings to include
+        db_path: Path to database file
+
+    Returns:
+        Statistics dictionary
+    """
+    return get_database(db_path).get_statistics(limit)

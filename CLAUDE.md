@@ -1,157 +1,298 @@
-# PowerFlow CLI
+# CLAUDE.md
 
-## Recent Changes (2025-12-28)
-- Removed unused import (`PowerError`) from `crates/powerflow-core/src/collector/iokit.rs`
-- Updated CLI and SMC modules
-- Added new file: `crates/powerflow-cli/src/database.rs`
-- Modified: `CLAUDE.md`, `crates/powerflow-cli/Cargo.toml`, `crates/powerflow-cli/src/cli.rs`, `crates/powerflow-cli/src/display/json.rs`, `crates/powerflow-cli/src/main.rs`, `crates/powerflow-core/src/collector/smc/ffi.rs`, `crates/powerflow-core/src/collector/smc/mod.rs`
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
----
+## Project Overview
 
-**開發注意事項：每次修改 Rust 檔案後，請執行 linter 與格式化檢查（建議指令：`cargo clippy` 與 `cargo fmt`），以確保程式碼品質、風格一致與正確性。**
+PowerFlow is a macOS command-line tool that monitors real-time battery power and charging status. Built with Rust, it provides both human-readable and JSON output formats for power metrics, with SQLite-based history tracking.
 
-本專案現已專注於 macOS 電源資訊的命令列工具（CLI），原 GUI 應用程式部分已移除。
+**Current Status**: CLI-first implementation (Phase 1-3 complete). The original Tauri GUI has been removed; focus is on the CLI tool.
 
-## 專案目標
+## Essential Commands
 
-- 以 CLI 方式顯示即時充電瓦數（如 `⚡ 45W / 67W`）
-- 持續監控模式（`--watch`），定時更新資料
-- 支援 JSON 輸出
-- 背景記錄充電資料到 SQLite（未來規劃）
-- 低資源占用（目標 <30MB RAM, <0.5% CPU idle）
+### Building and Running
 
-## 技術棧
+```bash
+# Build the CLI (debug mode)
+cargo build
 
-- **語言**: Rust 1.75+
-- **CLI**: clap, anyhow
-- **資料庫**: SQLite (rusqlite, 未來規劃)
-- **電源資訊**: 解析 `ioreg` 指令輸出
-- **最低支援**: macOS 12.0 (Monterey)
+# Build release binary
+cargo build --release
 
-## 專案結構
+# Run the CLI
+cargo run
+# Or after building:
+./target/release/powerflow
+
+# Run with specific features
+cargo build --release --features iokit
+```
+
+### Code Quality
+
+```bash
+# Run linter (REQUIRED after every Rust file modification)
+cargo clippy
+
+# Format code (REQUIRED after every Rust file modification)
+cargo fmt
+
+# Run all tests
+cargo test
+
+# Run tests for specific crate
+cargo test -p powerflow-core
+```
+
+### CLI Usage Examples
+
+```bash
+# Show current power status
+powerflow
+# or: powerflow status
+
+# Continuous monitoring (watch mode, updates every 2 seconds)
+powerflow watch --interval 2
+
+# JSON output
+powerflow --json
+
+# Query charging history (TUI with statistics, table, and chart)
+powerflow history
+
+# Query history with custom limit
+powerflow history --limit 50
+
+# Export history as JSON
+powerflow history --json
+
+# Export history as PNG chart
+powerflow history --plot --output my-chart.png
+```
+
+## Workspace Structure
+
+This is a Cargo workspace with three crates:
 
 ```
 powerflow/
+├── Cargo.toml                 # Workspace manifest
 ├── crates/
-│   ├── powerflow-cli/         # CLI 工具主程式
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── main.rs
-│   │       ├── cli.rs
-│   │       ├── display/
-│   │       └── ...
-│   ├── powerflow-core/        # 電源資訊收集核心
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── models.rs
-│   │       └── collector/
-│   │           ├── iokit.rs
-│   │           ├── ioreg.rs
-│   │           └── smc/
-│   └── powerflow-app/         # 原 GUI app（已移除 UI，僅保留結構）
-├── CLAUDE.md
-├── README.md
-└── LICENSE
+│   ├── powerflow-core/        # Core library: data collection and models
+│   │   ├── src/
+│   │   │   ├── lib.rs         # Public API
+│   │   │   ├── models.rs      # PowerReading, IORegBattery data structures
+│   │   │   ├── error.rs       # Error types
+│   │   │   └── collector/     # Data collection strategies
+│   │   │       ├── mod.rs     # PowerCollector trait
+│   │   │       ├── ioreg.rs   # Parse `ioreg` command output (default)
+│   │   │       ├── iokit.rs   # Direct IOKit API (requires iokit feature)
+│   │   │       └── smc/       # System Management Controller access
+│   │   └── Cargo.toml
+│   ├── powerflow-cli/         # CLI application
+│   │   ├── src/
+│   │   │   ├── main.rs        # Entry point
+│   │   │   ├── cli.rs         # Clap CLI definition and execution logic
+│   │   │   ├── database.rs    # SQLite operations for history
+│   │   │   └── display/       # Output formatting
+│   │   │       ├── mod.rs
+│   │   │       ├── human.rs   # Human-readable colored output
+│   │   │       └── json.rs    # JSON output
+│   │   └── Cargo.toml
+│   └── powerflow-app/         # Legacy Tauri app (removed UI, structure kept)
+└── powerflow.db               # SQLite database (auto-created at runtime)
 ```
 
-## CLI 功能範例
+## Architecture Overview
 
-```bash
-# 顯示即時充電資訊
-$ powerflow status
+### Data Collection Strategy Pattern
 
-# 持續監控，每 2 秒更新
-$ powerflow watch --interval 2
-
-# 以 JSON 格式顯示即時資訊
-$ powerflow status --json
-
-# 查詢最近 20 筆歷史資料
-$ powerflow history
-
-# 查詢最近 50 筆歷史資料
-$ powerflow history --limit 50
-
-# 以 JSON 格式查詢最近 10 筆歷史資料
-$ powerflow history --limit 10 --json
-```
-
-### 歷史資料說明
-
-- 所有即時資訊（status/watch）都會自動記錄到 SQLite 資料庫（`powerflow.db`）。
-- 可用 `history` 指令查詢過往資料，並以人類可讀或 JSON 格式輸出。
-- 支援自訂查詢筆數（`--limit`），預設 20 筆。
-- 支援 JSON 匯出（`--json`）。
-
-
-## 資料模型
+PowerFlow uses the **Strategy Pattern** for data collection via the `PowerCollector` trait (`powerflow-core/src/collector/mod.rs`):
 
 ```rust
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+pub trait PowerCollector {
+    fn collect(&self) -> PowerResult<PowerReading>;
+}
+```
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+**Available collectors:**
+
+1. **IORegCollector** (default): Parses `ioreg -rw0 -c AppleSmartBattery` output
+   - No special permissions required
+   - Uses plist parsing to extract battery info
+   - Location: `powerflow-core/src/collector/ioreg.rs`
+
+2. **IOKitCollector** (requires `iokit` feature): Direct IOKit/SMC API access
+   - More efficient (no subprocess spawning)
+   - Provides additional SMC sensor data
+   - Location: `powerflow-core/src/collector/iokit.rs`
+   - SMC implementation: `powerflow-core/src/collector/smc/`
+
+The `default_collector()` function returns the appropriate collector based on features:
+- If `iokit` feature is enabled → `IOKitCollector`
+- Otherwise → `IORegCollector`
+
+### Data Models
+
+Core data structure is `PowerReading` (defined in `powerflow-core/src/models.rs`):
+
+```rust
 pub struct PowerReading {
-    pub id: i64,
     pub timestamp: DateTime<Utc>,
-    pub watts_actual: f64,        // 即時瓦數（正=充電，負=放電）
-    pub watts_negotiated: i32,    // PD 協商上限
-    pub voltage: f64,             // 電壓 (V)
-    pub amperage: f64,            // 電流 (A)
-    pub battery_percent: i32,     // 電池百分比
-    pub is_charging: bool,        // 是否充電中
-    pub charger_name: Option<String>, // 充電器名稱
+
+    // Power metrics
+    pub watts_actual: f64,        // Actual power flow (W): + = charging, - = discharging
+    pub watts_negotiated: i32,    // PD negotiated max power (W)
+
+    // Electrical details
+    pub voltage: f64,             // Voltage (V)
+    pub amperage: f64,            // Current (A)
+
+    // Battery state
+    pub current_capacity: i32,    // Current capacity (mAh)
+    pub max_capacity: i32,        // Max capacity (mAh)
+    pub battery_percent: i32,     // Battery percentage (0-100)
+
+    // Status
+    pub is_charging: bool,
+    pub external_connected: bool,
+    pub charger_name: Option<String>,
+    pub charger_manufacturer: Option<String>,
 }
 ```
 
-## 電源資訊讀取
+`IORegBattery` is the raw deserialization target for ioreg plist output, which gets converted into `PowerReading`.
 
-透過 `ioreg` 指令取得電源資訊：
+### CLI Architecture
 
-```rust
-use std::process::Command;
+The CLI uses **clap** with derive macros (`powerflow-cli/src/cli.rs`):
 
-fn get_battery_info() -> String {
-    let output = Command::new("ioreg")
-        .args(["-rw0", "-c", "AppleSmartBattery"])
-        .output()
-        .expect("Failed to execute ioreg");
-    String::from_utf8_lossy(&output.stdout).to_string()
-}
+- **Commands**: `status` (or default), `watch`, `history`
+- **Global flags**: `--json`
+- **Execution flow**: `main.rs` → `Cli::parse()` → `Cli::execute()`
+
+Each command:
+1. Initializes SQLite database (`database.rs`)
+2. Collects power data via `powerflow_core::collect()`
+3. Saves reading to database
+4. Displays output (human or JSON format)
+
+### History Tracking
+
+All power readings from `status` and `watch` commands are automatically saved to SQLite (`powerflow.db`).
+
+**Database schema** (`powerflow-cli/src/database.rs`):
+
+```sql
+CREATE TABLE IF NOT EXISTS power_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    watts_actual REAL NOT NULL,
+    watts_negotiated INTEGER NOT NULL,
+    voltage REAL NOT NULL,
+    amperage REAL NOT NULL,
+    current_capacity INTEGER NOT NULL,
+    max_capacity INTEGER NOT NULL,
+    battery_percent INTEGER NOT NULL,
+    is_charging INTEGER NOT NULL,
+    external_connected INTEGER NOT NULL,
+    charger_name TEXT,
+    charger_manufacturer TEXT
+)
 ```
 
-### 要解析的 ioreg key
+**History display modes** (via `powerflow history`):
+
+1. **TUI mode** (default): Three-panel ratatouille interface
+   - Statistics block: time range, avg/max/min power, avg battery %
+   - Table block: Latest 10 records with all fields
+   - Chart block: Line chart of power vs. max power (press 'q' to exit)
+
+2. **JSON mode** (`--json`): Array of PowerReading objects
+
+3. **PNG export** (`--plot --output <file>`): Plotters-generated chart image
+
+### Watch Mode Implementation
+
+Watch mode (`powerflow watch`) uses `crossterm` for terminal control:
+- Clears screen on each update
+- Moves cursor to (0,0) for in-place updates
+- Sleeps for specified interval between readings
+- Each reading is saved to database
+- Press Ctrl+C to exit
+
+### macOS Power Data Sources
+
+**ioreg key mappings** (from `AppleSmartBattery` IORegistry entry):
 
 ```
-AppleSmartBattery:
-├── "CurrentCapacity"     # 電池當前容量 (mAh)
-├── "MaxCapacity"         # 電池最大容量 (mAh)
-├── "IsCharging"          # 是否充電中 (bool)
-├── "Voltage"             # 電壓 (mV)
-├── "Amperage"            # 電流 (mA, 負數=放電)
-├── "ExternalConnected"   # 是否接電源
-└── "AppleRawAdapterDetails" # 充電器資訊 array
-    └── [0]
-        ├── "Watts"       # 協商瓦數
-        ├── "Name"        # 充電器名稱
-        ├── "Manufacturer"# 製造商
-        ├── "Voltage"     # 充電電壓 (mV)
-        └── "Current"     # 充電電流 (mA)
+CurrentCapacity          → current_capacity (mAh)
+MaxCapacity              → max_capacity (mAh)
+IsCharging               → is_charging (bool)
+ExternalConnected        → external_connected (bool)
+Voltage                  → voltage (mV → V conversion)
+Amperage                 → amperage (mA → A conversion, negative = discharging)
+AppleRawAdapterDetails   → charger info array
+  [0].Watts              → watts_negotiated
+  [0].Name               → charger_name
+  [0].Manufacturer       → charger_manufacturer
+  [0].Voltage            → charger voltage (mV)
+  [0].Current            → charger current (mA)
 ```
 
-## TODO
+**Actual wattage calculation**: `voltage (V) × amperage (A) = watts (W)`
 
-- [x] CLI 即時顯示充電資訊
-- [x] 持續監控模式（watch）
-- [x] 支援 JSON 輸出
-- [x] 歷史資料記錄與查詢
-- [x] 整合 SQLite 資料庫
-- [x] 單元測試
+## Development Guidelines
 
-## 參考資源
+### Code Quality Requirements
 
-- [Tauri v2 文件](https://v2.tauri.app/)（僅供歷史參考）
-- [rusqlite](https://github.com/rusqlite/rusqlite)
-- [WhatWatt 原始碼](https://github.com/SomeInterestingUserName/WhatWatt) - 參考 ioreg 解析
-- [Powerflow](POWERFLOW.md) - POWERFLOW.md 文件
+**CRITICAL**: After modifying ANY Rust file:
+1. Run `cargo clippy` to check for lints
+2. Run `cargo fmt` to format code
+3. Ensure both pass before committing
+
+This ensures code quality, consistent style, and correctness.
+
+### Testing
+
+- Unit tests are located in the same files as implementation (using `#[cfg(test)]` modules)
+- Test fixtures for ioreg parsing may be in `tests/fixtures/` directories
+- Always run `cargo test` before pushing changes
+
+### Adding New Features
+
+**To add a new data field to PowerReading:**
+
+1. Update `PowerReading` struct in `powerflow-core/src/models.rs`
+2. Update `IORegBattery` struct if parsing from ioreg
+3. Modify `From<IORegBattery> for PowerReading` conversion
+4. Update database schema in `powerflow-cli/src/database.rs`
+5. Update display formatters in `powerflow-cli/src/display/`
+6. Run `cargo clippy` and `cargo fmt`
+7. Add tests for the new field
+
+**To add a new CLI command:**
+
+1. Add variant to `Commands` enum in `powerflow-cli/src/cli.rs`
+2. Implement execution logic in `Cli::execute()` match arm
+3. Add display logic in `powerflow-cli/src/display/` if needed
+4. Update this file's CLI usage examples
+
+### Performance Considerations
+
+- Target resource usage: <30MB RAM, <0.5% CPU idle
+- Default watch interval: 2 seconds (balance between responsiveness and overhead)
+- Database uses SQLite with bundled feature for portability
+
+## Platform Support
+
+- **Required**: macOS 12.0+ (Monterey or later)
+- **Build requirements**: Rust 1.75+
+- **macOS-only**: Uses IOKit framework and ioreg command (not cross-platform)
+
+## Important Files
+
+- `POWERFLOW.md`: Detailed technical documentation (legacy Tauri architecture, mostly outdated for current CLI focus)
+- `README.md`: User-facing documentation with usage examples
+- `Cargo.toml`: Workspace configuration with shared dependencies
+- `powerflow.db`: SQLite database (auto-created, not in version control)
