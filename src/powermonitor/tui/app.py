@@ -1,7 +1,6 @@
 """powermonitor Textual TUI Application - auto-updating power monitoring interface."""
 
 import asyncio
-from typing import Optional
 
 from textual.app import App
 from textual.app import ComposeResult
@@ -19,7 +18,7 @@ from .widgets import LiveDataPanel
 from .widgets import StatsPanel
 
 
-class powermonitorApp(App):
+class PowerMonitorApp(App):
     """powermonitor TUI application with auto-updating power data.
 
     Features:
@@ -70,7 +69,7 @@ class powermonitorApp(App):
         self.collector = default_collector()
         self.database = Database(DB_PATH)
         self.collection_interval = 2.0  # seconds
-        self._collector_task: Optional[asyncio.Task] = None
+        self._collector_task: asyncio.Task | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the TUI layout.
@@ -194,7 +193,7 @@ class powermonitorApp(App):
 
 def run_app() -> None:
     """Run the powermonitor TUI app."""
-    app = powermonitorApp()
+    app = PowerMonitorApp()
     app.run()
 
 

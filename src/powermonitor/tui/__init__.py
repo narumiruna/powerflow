@@ -1,5 +1,5 @@
 """Textual TUI for powermonitor - auto-updating power monitoring interface."""
 
-from .app import powermonitorApp
+from .app import PowerMonitorApp
 
 __all__ = ["powermonitorApp"]

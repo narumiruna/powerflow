@@ -55,9 +55,7 @@ class IORegCollector:
 
         # ioreg returns an array with one battery dictionary
         if not isinstance(plist_data, list) or len(plist_data) == 0:
-            raise ParseError(
-                "Unexpected plist structure: expected array with battery data"
-            )
+            raise ParseError("Unexpected plist structure: expected array with battery data")
 
         battery = plist_data[0]
 
@@ -91,9 +89,7 @@ class IORegCollector:
         watts_actual = PowerReading.calculate_watts(voltage, amperage)
 
         # Battery capacity (prefer raw values over percentage-based)
-        current_capacity = battery.get(
-            "AppleRawCurrentCapacity", battery.get("CurrentCapacity", 0)
-        )
+        current_capacity = battery.get("AppleRawCurrentCapacity", battery.get("CurrentCapacity", 0))
         max_capacity = battery.get("AppleRawMaxCapacity", battery.get("MaxCapacity", 1))
 
         # Battery percentage
@@ -112,11 +108,7 @@ class IORegCollector:
         charger_manufacturer = None
 
         adapter_details = battery.get("AppleRawAdapterDetails")
-        if (
-            adapter_details
-            and isinstance(adapter_details, list)
-            and len(adapter_details) > 0
-        ):
+        if adapter_details and isinstance(adapter_details, list) and len(adapter_details) > 0:
             adapter = adapter_details[0]
             watts_negotiated = adapter.get("Watts", 0)
             charger_name = adapter.get("Name")
