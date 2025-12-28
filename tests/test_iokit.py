@@ -5,7 +5,9 @@ import struct
 import pytest
 
 from powermonitor.collector.iokit.parser import bytes_to_float
-from powermonitor.collector.iokit.structures import str_to_key, key_to_str, type_to_str
+from powermonitor.collector.iokit.structures import key_to_str
+from powermonitor.collector.iokit.structures import str_to_key
+from powermonitor.collector.iokit.structures import type_to_str
 
 
 def test_str_to_key():

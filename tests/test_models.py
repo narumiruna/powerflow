@@ -1,7 +1,7 @@
 """Tests for PowerReading model."""
 
-from datetime import datetime, timezone
-
+from datetime import datetime
+from datetime import timezone
 
 from powermonitor.models import PowerReading
 

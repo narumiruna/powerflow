@@ -1,7 +1,8 @@
 """Pytest configuration and fixtures for powermonitor tests."""
 
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 
 import pytest

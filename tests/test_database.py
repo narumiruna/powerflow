@@ -1,8 +1,9 @@
 """Tests for database operations."""
 
 import sqlite3
-from datetime import datetime, timezone, timedelta
-
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 from powermonitor.database import Database
 from powermonitor.models import PowerReading
@@ -14,9 +15,7 @@ def test_database_initialization(database, temp_db):
     cursor = conn.cursor()
 
     # Check table exists
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='power_readings'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='power_readings'")
     assert cursor.fetchone() is not None
 
     # Check schema has all columns
@@ -224,9 +223,7 @@ def test_database_index_exists(temp_db):
     Database(temp_db)
 
     # Check index exists
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_timestamp'"
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_timestamp'")
     assert cursor.fetchone() is not None
 
     conn.close()
