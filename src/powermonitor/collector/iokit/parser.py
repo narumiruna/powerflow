@@ -3,6 +3,54 @@
 import struct
 
 
+def _parse_signed_fixed(data: bytes) -> float:
+    if len(data) < 2:
+        return 0.0
+    raw = struct.unpack(">h", data[:2])[0]
+    return raw / 256.0
+
+
+def _parse_unsigned_fixed(data: bytes) -> float:
+    if len(data) < 2:
+        return 0.0
+    raw = struct.unpack(">H", data[:2])[0]
+    return raw / 256.0
+
+
+def _parse_float(data: bytes) -> float:
+    if len(data) < 4:
+        return 0.0
+    return struct.unpack(">f", data[:4])[0]
+
+
+def _parse_ui8(data: bytes) -> float:
+    if len(data) < 1:
+        return 0.0
+    return float(data[0])
+
+
+def _parse_ui16(data: bytes) -> float:
+    if len(data) < 2:
+        return 0.0
+    return float(struct.unpack(">H", data[:2])[0])
+
+
+def _parse_ui32(data: bytes) -> float:
+    if len(data) < 4:
+        return 0.0
+    return float(struct.unpack(">I", data[:4])[0])
+
+
+def _parse_unknown(data: bytes, data_size: int) -> float:
+    if data_size == 1 and len(data) >= 1:
+        return float(data[0])
+    if data_size == 2 and len(data) >= 2:
+        return float(struct.unpack(">H", data[:2])[0])
+    if data_size == 4 and len(data) >= 4:
+        return float(struct.unpack(">I", data[:4])[0])
+    return 0.0
+
+
 def bytes_to_float(data: bytes, data_type: str, data_size: int) -> float:
     """Convert raw SMC bytes to float based on data type.
 
@@ -19,57 +67,20 @@ def bytes_to_float(data: bytes, data_type: str, data_size: int) -> float:
     Raises:
         ValueError: If data is insufficient for the type
     """
-    # Ensure data_type is padded to 4 characters
     data_type = data_type.ljust(4)
+    signed_fixed_types = {"sp78", "sp87", "sp96", "spa5", "spb4", "spf0"}
+    unsigned_fixed_types = {"fp88", "fp79", "fp6a", "fp4c"}
+    type_parsers = {
+        "flt ": _parse_float,
+        "ui8 ": _parse_ui8,
+        "ui16": _parse_ui16,
+        "ui32": _parse_ui32,
+    }
 
-    # Signed fixed-point types (divide by 256)
-    if data_type in ("sp78", "sp87", "sp96", "spa5", "spb4", "spf0"):
-        if len(data) < 2:
-            return 0.0
-        # Big-endian signed 16-bit integer
-        raw = struct.unpack(">h", data[:2])[0]
-        return raw / 256.0
-
-    # Unsigned fixed-point types (divide by 256)
-    elif data_type in ("fp88", "fp79", "fp6a", "fp4c"):
-        if len(data) < 2:
-            return 0.0
-        # Big-endian unsigned 16-bit integer
-        raw = struct.unpack(">H", data[:2])[0]
-        return raw / 256.0
-
-    # IEEE 754 float (4 bytes)
-    elif data_type == "flt ":
-        if len(data) < 4:
-            return 0.0
-        # Big-endian float
-        return struct.unpack(">f", data[:4])[0]
-
-    # Unsigned 8-bit integer
-    elif data_type == "ui8 ":
-        if len(data) < 1:
-            return 0.0
-        return float(data[0])
-
-    # Unsigned 16-bit integer
-    elif data_type == "ui16":
-        if len(data) < 2:
-            return 0.0
-        return float(struct.unpack(">H", data[:2])[0])
-
-    # Unsigned 32-bit integer
-    elif data_type == "ui32":
-        if len(data) < 4:
-            return 0.0
-        return float(struct.unpack(">I", data[:4])[0])
-
-    # Unknown type - try to parse as unsigned integer based on size
-    else:
-        if data_size == 1 and len(data) >= 1:
-            return float(data[0])
-        elif data_size == 2 and len(data) >= 2:
-            return float(struct.unpack(">H", data[:2])[0])
-        elif data_size == 4 and len(data) >= 4:
-            return float(struct.unpack(">I", data[:4])[0])
-        else:
-            return 0.0
+    if data_type in signed_fixed_types:
+        return _parse_signed_fixed(data)
+    if data_type in unsigned_fixed_types:
+        return _parse_unsigned_fixed(data)
+    if data_type in type_parsers:
+        return type_parsers[data_type](data)
+    return _parse_unknown(data, data_size)
