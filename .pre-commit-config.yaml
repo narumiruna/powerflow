@@ -13,18 +13,23 @@ repos:
     hooks:
       - id: typos
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.9.18
+    hooks:
+      - id: uv-lock
+
   - repo: local
     hooks:
-      - id: cargo-fmt
-        name: cargo fmt
-        entry: cargo fmt --
+      - id: ty-check
+        name: ty check
+        entry: uv run ty check .
         language: system
-        types: [rust]
-        pass_filenames: false # This makes it a lot faster
-
-      - id: cargo-clippy
-        name: cargo clippy
-        language: system
-        types: [rust]
+        types: [python]
         pass_filenames: false
-        entry: cargo clippy --all-targets --all-features -- -D warnings

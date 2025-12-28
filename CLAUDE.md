@@ -4,184 +4,160 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PowerFlow is a macOS command-line tool that monitors real-time battery power and charging status. Built with Rust, it provides both human-readable and JSON output formats for power metrics, with SQLite-based history tracking.
+PowerFlow is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.12+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
 
-**Current Status**: CLI-first implementation (Phase 1-3 complete). The original Tauri GUI has been removed; focus is on the CLI tool.
+**Current Status**: Fully migrated from Rust to Python. Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
 
 ## Essential Commands
 
-### Building and Running
+### Running PowerFlow
 
 ```bash
-# Build the CLI (debug mode)
-cargo build
-
-# Build release binary
-cargo build --release
-
-# Run the CLI
-cargo run
-# Or after building:
-./target/release/powerflow
-
-# Run with specific features
-cargo build --release --features iokit
-```
-
-### Code Quality
-
-```bash
-# Run linter (REQUIRED after every Rust file modification)
-cargo clippy
-
-# Format code (REQUIRED after every Rust file modification)
-cargo fmt
-
-# Run all tests
-cargo test
-
-# Run tests for specific crate
-cargo test -p powerflow-core
-```
-
-### CLI Usage Examples
-
-```bash
-# Show current power status
+# Launch the auto-updating TUI
 powerflow
-# or: powerflow status
 
-# Continuous monitoring (watch mode, updates every 2 seconds)
-powerflow watch --interval 2
-
-# JSON output
-powerflow --json
-
-# Query charging history (TUI with statistics, table, and chart)
-powerflow history
-
-# Query history with custom limit
-powerflow history --limit 50
-
-# Export history as JSON
-powerflow history --json
-
-# Export history as PNG chart
-powerflow history --plot --output my-chart.png
+# Or using uv:
+uv run powerflow
 ```
 
-## Workspace Structure
+### Development
 
-This is a Cargo workspace with three crates:
+```bash
+# Install dependencies
+uv sync
+
+# Run with verbose collector info (debug mode)
+uv run python -c "from powerflow.collector import default_collector; default_collector(verbose=True).collect()"
+
+# Run tests (when available)
+uv run pytest
+
+# Type checking
+uv run mypy src/
+
+# Linting and formatting
+uv run ruff check src/
+uv run ruff format src/
+```
+
+## Project Structure
 
 ```
 powerflow/
-├── Cargo.toml                 # Workspace manifest
-├── crates/
-│   ├── powerflow-core/        # Core library: data collection and models
-│   │   ├── src/
-│   │   │   ├── lib.rs         # Public API
-│   │   │   ├── models.rs      # PowerReading, IORegBattery data structures
-│   │   │   ├── error.rs       # Error types
-│   │   │   └── collector/     # Data collection strategies
-│   │   │       ├── mod.rs     # PowerCollector trait
-│   │   │       ├── ioreg.rs   # Parse `ioreg` command output (default)
-│   │   │       ├── iokit.rs   # Direct IOKit API (requires iokit feature)
-│   │   │       └── smc/       # System Management Controller access
-│   │   └── Cargo.toml
-│   ├── powerflow-cli/         # CLI application
-│   │   ├── src/
-│   │   │   ├── main.rs        # Entry point
-│   │   │   ├── cli.rs         # Clap CLI definition and execution logic
-│   │   │   ├── database.rs    # SQLite operations for history
-│   │   │   └── display/       # Output formatting
-│   │   │       ├── mod.rs
-│   │   │       ├── human.rs   # Human-readable colored output
-│   │   │       └── json.rs    # JSON output
-│   │   └── Cargo.toml
-│   └── powerflow-app/         # Legacy Tauri app (removed UI, structure kept)
-└── powerflow.db               # SQLite database (auto-created at runtime)
+├── pyproject.toml              # uv project configuration
+├── uv.lock                     # Dependency lock file
+├── src/
+│   └── powerflow/
+│       ├── __init__.py
+│       ├── cli.py              # Entry point (launches TUI)
+│       ├── models.py           # PowerReading dataclass (12 fields)
+│       ├── database.py         # SQLite operations
+│       ├── collector/
+│       │   ├── __init__.py
+│       │   ├── base.py         # PowerCollector protocol
+│       │   ├── ioreg.py        # Subprocess-based collector (fallback)
+│       │   ├── factory.py      # default_collector() with auto-fallback
+│       │   └── iokit/          # Direct IOKit/SMC access
+│       │       ├── __init__.py
+│       │       ├── bindings.py # ctypes IOKit framework bindings
+│       │       ├── structures.py # SMC data structures
+│       │       ├── parser.py   # Binary data parsing (13 SMC types)
+│       │       ├── connection.py # SMCConnection class
+│       │       └── collector.py # IOKitCollector
+│       └── tui/
+│           ├── __init__.py
+│           ├── app.py          # Textual TUI application
+│           └── widgets.py      # LiveDataPanel, StatsPanel, ChartWidget
+├── tests/
+│   └── fixtures/
+│       └── real_mac.txt        # Sample ioreg output for testing
+└── powerflow.db                # SQLite database (auto-created)
 ```
 
 ## Architecture Overview
 
-### Data Collection Strategy Pattern
+### TUI Application
 
-PowerFlow uses the **Strategy Pattern** for data collection via the `PowerCollector` trait (`powerflow-core/src/collector/mod.rs`):
+PowerFlow uses **Textual** for the TUI with a 3-panel auto-updating layout:
 
-```rust
-pub trait PowerCollector {
-    fn collect(&self) -> PowerResult<PowerReading>;
-}
+1. **LiveDataPanel** (green border): Real-time power metrics
+   - Status indicator: ⚡ Charging / 🔌 AC Power / 🔋 On Battery
+   - Current power (W), battery %, voltage, amperage
+   - Charger information if available
+   - Updates every 2 seconds
+
+2. **StatsPanel** (cyan border): Historical statistics
+   - Time range (earliest/latest readings)
+   - Average/min/max power (W)
+   - Average battery percentage
+   - Based on last 100 readings
+
+3. **ChartWidget** (blue border): Power over time visualization
+   - Line chart using textual-plotext
+   - Shows last 60 readings
+   - Two lines: actual power (red) + max negotiated power (blue)
+
+**Key bindings:**
+- `q` / `ESC`: Quit application
+- `r`: Force refresh data
+- `c`: Clear history (with confirmation)
+
+### Data Collection Strategy
+
+PowerFlow uses the **Strategy Pattern** via the `PowerCollector` protocol:
+
+```python
+class PowerCollector(Protocol):
+    def collect(self) -> PowerReading: ...
 ```
 
 **Available collectors:**
 
-1. **IORegCollector** (default): Parses `ioreg -rw0 -c AppleSmartBattery` output
+1. **IOKitCollector** (preferred): Direct IOKit/SMC API access via ctypes
+   - Reads 7 SMC sensors: PPBR, PDTR, PSTR, PHPC, PDBR, TB0T, CHCC
+   - Uses PDTR (Power Delivery/Input Rate) for most accurate watts_actual
+   - Falls back to IORegCollector on error
+   - Location: `src/powerflow/collector/iokit/collector.py`
+
+2. **IORegCollector** (fallback): Parses `ioreg -rw0 -c AppleSmartBattery -a` output
    - No special permissions required
-   - Uses plist parsing to extract battery info
-   - Location: `powerflow-core/src/collector/ioreg.rs`
+   - Uses plistlib to parse XML output
+   - Location: `src/powerflow/collector/ioreg.py`
 
-2. **IOKitCollector** (requires `iokit` feature): Direct IOKit/SMC API access
-   - More efficient (no subprocess spawning)
-   - Provides additional SMC sensor data
-   - Location: `powerflow-core/src/collector/iokit.rs`
-   - SMC implementation: `powerflow-core/src/collector/smc/`
-
-The `default_collector()` function returns the appropriate collector based on features:
-- If `iokit` feature is enabled → `IOKitCollector`
-- Otherwise → `IORegCollector`
+The `default_collector()` function tries IOKitCollector first, automatically falling back to IORegCollector if SMC sensors are unavailable.
 
 ### Data Models
 
-Core data structure is `PowerReading` (defined in `powerflow-core/src/models.rs`):
+Core data structure is `PowerReading` (defined in `src/powerflow/models.py`):
 
-```rust
-pub struct PowerReading {
-    pub timestamp: DateTime<Utc>,
+```python
+@dataclass
+class PowerReading:
+    timestamp: datetime           # UTC timestamp
 
-    // Power metrics
-    pub watts_actual: f64,        // Actual power flow (W): + = charging, - = discharging
-    pub watts_negotiated: i32,    // PD negotiated max power (W)
+    # Power metrics
+    watts_actual: float          # Actual power (W): + = charging, - = discharging
+    watts_negotiated: int        # PD negotiated max power (W)
 
-    // Electrical details
-    pub voltage: f64,             // Voltage (V)
-    pub amperage: f64,            // Current (A)
+    # Electrical details
+    voltage: float               # Voltage (V)
+    amperage: float              # Current (A)
 
-    // Battery state
-    pub current_capacity: i32,    // Current capacity (mAh)
-    pub max_capacity: i32,        // Max capacity (mAh)
-    pub battery_percent: i32,     // Battery percentage (0-100)
+    # Battery state
+    current_capacity: int        # Current capacity (mAh)
+    max_capacity: int            # Max capacity (mAh)
+    battery_percent: int         # Battery percentage (0-100)
 
-    // Status
-    pub is_charging: bool,
-    pub external_connected: bool,
-    pub charger_name: Option<String>,
-    pub charger_manufacturer: Option<String>,
-}
+    # Status
+    is_charging: bool
+    external_connected: bool
+    charger_name: str | None
+    charger_manufacturer: str | None
 ```
 
-`IORegBattery` is the raw deserialization target for ioreg plist output, which gets converted into `PowerReading`.
+### Database Schema
 
-### CLI Architecture
-
-The CLI uses **clap** with derive macros (`powerflow-cli/src/cli.rs`):
-
-- **Commands**: `status` (or default), `watch`, `history`
-- **Global flags**: `--json`
-- **Execution flow**: `main.rs` → `Cli::parse()` → `Cli::execute()`
-
-Each command:
-1. Initializes SQLite database (`database.rs`)
-2. Collects power data via `powerflow_core::collect()`
-3. Saves reading to database
-4. Displays output (human or JSON format)
-
-### History Tracking
-
-All power readings from `status` and `watch` commands are automatically saved to SQLite (`powerflow.db`).
-
-**Database schema** (`powerflow-cli/src/database.rs`):
+All power readings are automatically saved to SQLite (`powerflow.db`):
 
 ```sql
 CREATE TABLE IF NOT EXISTS power_readings (
@@ -198,28 +174,118 @@ CREATE TABLE IF NOT EXISTS power_readings (
     external_connected INTEGER NOT NULL,
     charger_name TEXT,
     charger_manufacturer TEXT
-)
+);
+CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 ```
 
-**History display modes** (via `powerflow history`):
+**Database operations** (`src/powerflow/database.py`):
+- `insert_reading()`: Save PowerReading to database
+- `query_history(limit=60)`: Retrieve last N readings
+- `get_statistics(limit=100)`: Calculate avg/min/max stats
+- `clear_history()`: Delete all readings
 
-1. **TUI mode** (default): Three-panel ratatouille interface
-   - Statistics block: time range, avg/max/min power, avg battery %
-   - Table block: Latest 10 records with all fields
-   - Chart block: Line chart of power vs. max power (press 'q' to exit)
+### IOKit/SMC FFI Implementation
 
-2. **JSON mode** (`--json`): Array of PowerReading objects
+PowerFlow uses **ctypes** for direct macOS IOKit/SMC access:
 
-3. **PNG export** (`--plot --output <file>`): Plotters-generated chart image
+**Bindings** (`src/powerflow/collector/iokit/bindings.py`):
+- 9 IOKit functions: IOMasterPort, IOServiceMatching, IOConnectCallStructMethod, etc.
+- Handles mach_task_self() as a global variable (not function)
 
-### Watch Mode Implementation
+**Structures** (`src/powerflow/collector/iokit/structures.py`):
+- SMCKeyData, KeyInfo, SMCVersion, SMCPLimitData (all packed structs)
+- Helper functions: str_to_key(), key_to_str(), type_to_str()
 
-Watch mode (`powerflow watch`) uses `crossterm` for terminal control:
-- Clears screen on each update
-- Moves cursor to (0,0) for in-place updates
-- Sleeps for specified interval between readings
-- Each reading is saved to database
-- Press Ctrl+C to exit
+**Parser** (`src/powerflow/collector/iokit/parser.py`):
+- `bytes_to_float()` supporting 13 SMC data types:
+  - Signed fixed-point: sp78, sp87, sp96, spa5, spb4, spf0 (divide by 256)
+  - Unsigned fixed-point: fp88, fp79, fp6a, fp4c (divide by 256)
+  - IEEE 754 float: flt
+  - Integers: ui8, ui16, ui32
+
+**SMC Sensor Keys:**
+- **PDTR**: Power Delivery/Input Rate (W) - Most accurate for watts_actual
+- **PPBR**: Battery Power Rate (W)
+- **PSTR**: System Total Power Consumption (W)
+- **PHPC**: Heatpipe/Cooling Power (W)
+- **PDBR**: Display Brightness Power (W)
+- **TB0T**: Battery Temperature (°C)
+- **CHCC**: Charging Status
+
+### Background Data Collection
+
+The TUI uses **asyncio** for background data collection:
+
+```python
+async def _collection_loop(self) -> None:
+    while True:
+        await asyncio.sleep(self.collection_interval)  # Default: 2.0s
+        await self._collect_and_update()
+
+async def _collect_and_update(self) -> None:
+    # Run blocking collector in executor (avoid blocking UI)
+    loop = asyncio.get_event_loop()
+    reading = await loop.run_in_executor(None, self.collector.collect)
+
+    # Save to database
+    await loop.run_in_executor(None, self.database.insert_reading, reading)
+
+    # Update all widgets reactively
+    self.call_from_thread(self._update_all_widgets, reading)
+```
+
+## Development Guidelines
+
+### Code Quality
+
+**Best Practices:**
+- Use type hints for all function signatures
+- Follow PEP 8 style guide (enforced by ruff)
+- Keep functions focused and testable
+- Use dataclasses for structured data
+- Prefer composition over inheritance
+
+**Type Checking:**
+```bash
+uv run mypy src/
+```
+
+**Linting:**
+```bash
+uv run ruff check src/
+uv run ruff format src/
+```
+
+### Adding New Features
+
+**To add a new data field to PowerReading:**
+
+1. Update `PowerReading` dataclass in `src/powerflow/models.py`
+2. Update `IORegBattery` dataclass if parsing from ioreg
+3. Modify conversion in `IORegCollector._parse_battery_data()`
+4. Update database schema in `src/powerflow/database.py`
+5. Update display in `src/powerflow/tui/widgets.py`
+6. Run type checking and linting
+
+**To add a new SMC sensor:**
+
+1. Add sensor key to `SMC_SENSORS` dict in `src/powerflow/collector/iokit/collector.py`
+2. Add field to `SMCPowerData` dataclass
+3. Update `_read_smc_sensors()` to read the new sensor
+4. Use the value in `_collect_with_smc()` if needed
+
+**To add a new TUI widget:**
+
+1. Create widget class in `src/powerflow/tui/widgets.py`
+2. Add to layout in `PowerFlowApp.compose()` in `src/powerflow/tui/app.py`
+3. Update widget in `_update_all_widgets()`
+4. Add CSS styling to `PowerFlowApp.CSS`
+
+### Testing
+
+- Test fixtures available in `tests/fixtures/real_mac.txt`
+- Use `uv run pytest` when tests are added
+- Manual testing: `uv run powerflow`
 
 ### macOS Power Data Sources
 
@@ -242,57 +308,24 @@ AppleRawAdapterDetails   → charger info array
 
 **Actual wattage calculation**: `voltage (V) × amperage (A) = watts (W)`
 
-## Development Guidelines
-
-### Code Quality Requirements
-
-**CRITICAL**: After modifying ANY Rust file:
-1. Run `cargo clippy` to check for lints
-2. Run `cargo fmt` to format code
-3. Ensure both pass before committing
-
-This ensures code quality, consistent style, and correctness.
-
-### Testing
-
-- Unit tests are located in the same files as implementation (using `#[cfg(test)]` modules)
-- Test fixtures for ioreg parsing may be in `tests/fixtures/` directories
-- Always run `cargo test` before pushing changes
-
-### Adding New Features
-
-**To add a new data field to PowerReading:**
-
-1. Update `PowerReading` struct in `powerflow-core/src/models.rs`
-2. Update `IORegBattery` struct if parsing from ioreg
-3. Modify `From<IORegBattery> for PowerReading` conversion
-4. Update database schema in `powerflow-cli/src/database.rs`
-5. Update display formatters in `powerflow-cli/src/display/`
-6. Run `cargo clippy` and `cargo fmt`
-7. Add tests for the new field
-
-**To add a new CLI command:**
-
-1. Add variant to `Commands` enum in `powerflow-cli/src/cli.rs`
-2. Implement execution logic in `Cli::execute()` match arm
-3. Add display logic in `powerflow-cli/src/display/` if needed
-4. Update this file's CLI usage examples
-
-### Performance Considerations
-
-- Target resource usage: <30MB RAM, <0.5% CPU idle
-- Default watch interval: 2 seconds (balance between responsiveness and overhead)
-- Database uses SQLite with bundled feature for portability
-
 ## Platform Support
 
 - **Required**: macOS 12.0+ (Monterey or later)
-- **Build requirements**: Rust 1.75+
-- **macOS-only**: Uses IOKit framework and ioreg command (not cross-platform)
+- **Python**: 3.12+ (uses modern type hints: `str | None`, etc.)
+- **Dependencies**: textual, rich, textual-plotext (managed by uv)
+- **macOS-only**: Uses IOKit framework and ioreg command
 
 ## Important Files
 
-- `POWERFLOW.md`: Detailed technical documentation (legacy Tauri architecture, mostly outdated for current CLI focus)
-- `README.md`: User-facing documentation with usage examples
-- `Cargo.toml`: Workspace configuration with shared dependencies
+- `pyproject.toml`: Project configuration, dependencies, and scripts
+- `uv.lock`: Locked dependency versions
 - `powerflow.db`: SQLite database (auto-created, not in version control)
+- `.pre-commit-config.yaml`: Pre-commit hooks (ruff, mypy, typos)
+- `tests/fixtures/real_mac.txt`: Sample ioreg output for testing
+
+## Performance Targets
+
+- Memory usage: <50MB RAM
+- CPU usage: <1% when idle
+- Collection interval: 2 seconds (configurable)
+- Database queries: Indexed by timestamp for fast retrieval
