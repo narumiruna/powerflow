@@ -1,9 +1,9 @@
 """Tests for database operations."""
 
 import sqlite3
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
-from datetime import timezone
 
 from powermonitor.database import Database
 from powermonitor.models import PowerReading
@@ -53,7 +53,7 @@ def test_insert_reading(database, sample_reading):
 def test_insert_multiple_readings(database):
     """Test inserting multiple readings."""
     readings = []
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
 
     for i in range(5):
         reading = PowerReading(
@@ -118,7 +118,7 @@ def test_query_history_empty(database):
 def test_get_statistics(database):
     """Test calculating statistics from readings."""
     # Insert readings with known values
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
     watts_values = [10.0, 20.0, 30.0, 40.0, 50.0]
 
     for i, watts in enumerate(watts_values):
@@ -165,7 +165,7 @@ def test_get_statistics_empty(database):
 def test_clear_history(database, sample_reading):
     """Test clearing all historical readings."""
     # Insert some readings
-    for i in range(5):
+    for _ in range(5):
         database.insert_reading(sample_reading)
 
     # Verify data exists
@@ -190,7 +190,7 @@ def test_clear_history_empty(database):
 def test_reading_with_null_charger(database):
     """Test storing and retrieving reading with NULL charger fields."""
     reading = PowerReading(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         watts_actual=-5.0,
         watts_negotiated=0,
         voltage=12.0,

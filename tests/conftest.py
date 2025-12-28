@@ -1,8 +1,8 @@
 """Pytest configuration and fixtures for powermonitor tests."""
 
 import tempfile
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 from pathlib import Path
 
 import pytest
@@ -51,7 +51,7 @@ def sample_reading():
         PowerReading instance with test data
     """
     return PowerReading(
-        timestamp=datetime(2025, 12, 28, 12, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2025, 12, 28, 12, 0, 0, tzinfo=UTC),
         watts_actual=45.5,
         watts_negotiated=67,
         voltage=20.0,
