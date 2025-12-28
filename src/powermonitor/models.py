@@ -12,9 +12,7 @@ class PowerReading:
     timestamp: datetime
 
     # Power metrics
-    watts_actual: (
-        float  # Actual power flow: positive = charging, negative = discharging (W)
-    )
+    watts_actual: float  # Actual power flow: positive = charging, negative = discharging (W)
     watts_negotiated: int  # PD negotiated maximum power (W)
 
     # Electrical details

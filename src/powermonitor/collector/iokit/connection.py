@@ -63,9 +63,7 @@ class SMCConnection:
 
         # Get matching services
         iterator = ctypes.c_uint32(0)
-        kr = IOServiceGetMatchingServices(
-            master_port.value, matching, ctypes.byref(iterator)
-        )
+        kr = IOServiceGetMatchingServices(master_port.value, matching, ctypes.byref(iterator))
         if kr != KERN_SUCCESS:
             raise SMCError(f"IOServiceGetMatchingServices failed: {kr}")
 
