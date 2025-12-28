@@ -158,7 +158,7 @@ class PowerReading:
 
 ### Database Schema
 
-All power readings are automatically saved to SQLite at `~/.powermonitor/powermonitor.db` (configurable via `powermonitor_DB_PATH` environment variable):
+All power readings are automatically saved to SQLite at `~/.powermonitor/powermonitor.db` (configurable via `POWERMONITOR_DB_PATH` environment variable):
 
 ```sql
 CREATE TABLE IF NOT EXISTS power_readings (

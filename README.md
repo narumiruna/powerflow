@@ -126,7 +126,7 @@ All readings automatically saved to SQLite:
 
 **Custom location** (via environment variable):
 ```bash
-export powermonitor_DB_PATH=/path/to/custom.db
+export POWERMONITOR_DB_PATH=/path/to/custom.db
 powermonitor
 ```
 
