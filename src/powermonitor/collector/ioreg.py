@@ -2,8 +2,8 @@
 
 import plistlib
 import subprocess
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 
 from ..models import CommandFailedError
 from ..models import MissingFieldError
@@ -93,10 +93,7 @@ class IORegCollector:
         max_capacity = battery.get("AppleRawMaxCapacity", battery.get("MaxCapacity", 1))
 
         # Battery percentage
-        if max_capacity > 0:
-            battery_percent = round((current_capacity / max_capacity) * 100)
-        else:
-            battery_percent = 0
+        battery_percent = round((current_capacity / max_capacity) * 100) if max_capacity > 0 else 0
 
         # Charging status
         is_charging = battery.get("IsCharging", False)
@@ -115,7 +112,7 @@ class IORegCollector:
             charger_manufacturer = adapter.get("Manufacturer")
 
         return PowerReading(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             watts_actual=watts_actual,
             watts_negotiated=watts_negotiated,
             voltage=voltage,
