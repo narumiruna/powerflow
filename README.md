@@ -1,4 +1,4 @@
-# powermonitor
+# Power Monitor
 
 macOS power monitoring tool with auto-updating TUI for real-time battery and charging status.
 
