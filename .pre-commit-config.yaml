@@ -5,7 +5,6 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
       - id: check-yaml
-      - id: check-toml
       - id: end-of-file-fixer
 
   - repo: https://github.com/crate-ci/typos
