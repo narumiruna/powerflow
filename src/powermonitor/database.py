@@ -268,7 +268,7 @@ class Database:
 
 
 # Module-level convenience functions
-_default_db: Optional[Database] = None
+_default_db: Database | None = None
 
 
 def get_database(db_path: Path | str = DB_PATH) -> Database:
