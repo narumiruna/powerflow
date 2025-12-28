@@ -5,6 +5,8 @@ Matches Rust implementation from powerflow-core/src/collector/mod.rs
 
 import sys
 
+from loguru import logger
+
 from .base import PowerCollector
 from .ioreg import IORegCollector
 
@@ -33,9 +35,9 @@ def default_collector(verbose: bool = False) -> PowerCollector:
         from .iokit import IOKitCollector
 
         if verbose:
-            print("Using IOKitCollector (SMC sensors)")
+            logger.info("Using IOKitCollector (SMC sensors)")
         return IOKitCollector(verbose=verbose)
     except (ImportError, PermissionError, OSError) as e:
         if verbose:
-            print(f"IOKitCollector unavailable ({e}), using IORegCollector")
+            logger.warning(f"IOKitCollector unavailable ({e}), using IORegCollector")
         return IORegCollector()

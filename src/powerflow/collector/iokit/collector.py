@@ -3,6 +3,8 @@
 from typing import Optional
 from dataclasses import dataclass
 
+from loguru import logger
+
 from ...models import PowerReading
 from ..base import PowerCollector
 from ..ioreg import IORegCollector
@@ -72,8 +74,8 @@ class IOKitCollector(PowerCollector):
             return self._collect_with_smc()
         except (SMCError, Exception) as e:
             if self.verbose:
-                print(f"Warning: SMC access failed: {e}")
-                print("Falling back to IORegCollector...")
+                logger.warning(f"SMC access failed: {e}")
+                logger.info("Falling back to IORegCollector...")
             return self.fallback_collector.collect()
 
     def _collect_with_smc(self) -> PowerReading:
@@ -96,15 +98,15 @@ class IOKitCollector(PowerCollector):
 
         # Debug output if verbose
         if self.verbose:
-            print("\nSMC Sensor Data:")
-            print(f"  PPBR (Battery Power): {smc_data.battery_power}W")
-            print(f"  PDTR (Power Input): {smc_data.power_input}W")
-            print(f"  PSTR (System Power): {smc_data.system_power}W")
-            print(f"  PHPC (Heatpipe): {smc_data.heatpipe_power}W")
-            print(f"  PDBR (Display): {smc_data.display_power}W")
-            print(f"  TB0T (Battery Temp): {smc_data.battery_temp}°C")
-            print(f"  CHCC (Charging): {smc_data.charging_status}")
-            print(f"\nUsing PDTR for watts_actual: {reading.watts_actual}W")
+            logger.debug("SMC Sensor Data:")
+            logger.debug(f"  PPBR (Battery Power): {smc_data.battery_power}W")
+            logger.debug(f"  PDTR (Power Input): {smc_data.power_input}W")
+            logger.debug(f"  PSTR (System Power): {smc_data.system_power}W")
+            logger.debug(f"  PHPC (Heatpipe): {smc_data.heatpipe_power}W")
+            logger.debug(f"  PDBR (Display): {smc_data.display_power}W")
+            logger.debug(f"  TB0T (Battery Temp): {smc_data.battery_temp}°C")
+            logger.debug(f"  CHCC (Charging): {smc_data.charging_status}")
+            logger.debug(f"Using PDTR for watts_actual: {reading.watts_actual}W")
 
         return reading
 

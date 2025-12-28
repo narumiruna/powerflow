@@ -2,6 +2,8 @@
 
 import sys
 
+from loguru import logger
+
 from .tui.app import run_app
 
 
@@ -12,17 +14,17 @@ def main() -> None:
     """
     # Check platform
     if sys.platform != "darwin":
-        print("Error: PowerFlow only supports macOS", file=sys.stderr)
+        logger.error("PowerFlow only supports macOS")
         sys.exit(1)
 
     # Launch TUI
     try:
         run_app()
     except KeyboardInterrupt:
-        print("\nExiting PowerFlow...")
+        logger.info("Exiting PowerFlow...")
         sys.exit(0)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.exception(f"Fatal error: {e}")
         sys.exit(1)
 
 
