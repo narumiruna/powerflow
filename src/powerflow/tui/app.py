@@ -5,7 +5,7 @@ from typing import Optional
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Vertical
+from textual.containers import Vertical
 from textual.widgets import Header, Footer
 
 from ..collector import default_collector
@@ -175,21 +175,14 @@ class PowerFlowApp(App):
     def action_clear_history(self) -> None:
         """Handle clear history key binding (C).
 
-        Shows confirmation before clearing.
+        Clears all historical readings from database.
         """
-        def do_clear(confirmed: bool) -> None:
-            if confirmed:
-                rows_deleted = self.database.clear_history()
-                self.notify(f"Cleared {rows_deleted} historical readings", timeout=3)
-                # Refresh display
-                self.refresh_all_data()
+        rows_deleted = self.database.clear_history()
+        self.notify(f"Cleared {rows_deleted} historical readings", timeout=3)
+        # Refresh display
+        self.refresh_all_data()
 
-        self.push_screen(
-            "Are you sure you want to clear all history? (y/n)",
-            do_clear
-        )
-
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
         """Handle quit action (Q or ESC)."""
         self.exit()
 

@@ -1,6 +1,5 @@
 """SMC data structures matching the C layout."""
 
-import ctypes
 from ctypes import Structure, c_uint8, c_uint16, c_uint32
 
 # SMC Constants
@@ -14,51 +13,55 @@ SMC_BYTES_SIZE = 32
 
 class SMCVersion(Structure):
     """SMC version structure."""
+
     _pack_ = 1  # Matches Rust #[repr(C, packed)]
     _fields_ = [
-        ('major', c_uint8),
-        ('minor', c_uint8),
-        ('build', c_uint8),
-        ('reserved', c_uint8),
-        ('release', c_uint16),
+        ("major", c_uint8),
+        ("minor", c_uint8),
+        ("build", c_uint8),
+        ("reserved", c_uint8),
+        ("release", c_uint16),
     ]
 
 
 class SMCPLimitData(Structure):
     """SMC power limit data."""
+
     _pack_ = 1
     _fields_ = [
-        ('version', c_uint16),
-        ('length', c_uint16),
-        ('cpu_plimit', c_uint32),
-        ('gpu_plimit', c_uint32),
-        ('mem_plimit', c_uint32),
+        ("version", c_uint16),
+        ("length", c_uint16),
+        ("cpu_plimit", c_uint32),
+        ("gpu_plimit", c_uint32),
+        ("mem_plimit", c_uint32),
     ]
 
 
 class KeyInfo(Structure):
     """SMC key information."""
+
     _pack_ = 1
     _fields_ = [
-        ('data_size', c_uint32),
-        ('data_type', c_uint32),
-        ('data_attributes', c_uint8),
+        ("data_size", c_uint32),
+        ("data_type", c_uint32),
+        ("data_attributes", c_uint8),
     ]
 
 
 class SMCKeyData(Structure):
     """SMC key data structure (80 bytes total)."""
+
     _pack_ = 1
     _fields_ = [
-        ('key', c_uint32),
-        ('vers', SMCVersion),
-        ('p_limit_data', SMCPLimitData),
-        ('key_info', KeyInfo),
-        ('result', c_uint8),
-        ('status', c_uint8),
-        ('data8', c_uint8),
-        ('data32', c_uint32),
-        ('bytes', c_uint8 * SMC_BYTES_SIZE),
+        ("key", c_uint32),
+        ("vers", SMCVersion),
+        ("p_limit_data", SMCPLimitData),
+        ("key_info", KeyInfo),
+        ("result", c_uint8),
+        ("status", c_uint8),
+        ("data8", c_uint8),
+        ("data32", c_uint32),
+        ("bytes", c_uint8 * SMC_BYTES_SIZE),
     ]
 
 
@@ -74,8 +77,8 @@ def str_to_key(s: str) -> int:
     if len(s) != 4:
         return 0
 
-    bytes_val = s.encode('ascii')
-    return int.from_bytes(bytes_val, byteorder='big')
+    bytes_val = s.encode("ascii")
+    return int.from_bytes(bytes_val, byteorder="big")
 
 
 def key_to_str(key: int) -> str:
@@ -87,8 +90,8 @@ def key_to_str(key: int) -> str:
     Returns:
         4-character string
     """
-    bytes_val = key.to_bytes(4, byteorder='big')
-    return bytes_val.decode('ascii', errors='replace')
+    bytes_val = key.to_bytes(4, byteorder="big")
+    return bytes_val.decode("ascii", errors="replace")
 
 
 def type_to_str(data_type: int) -> str:
@@ -100,5 +103,5 @@ def type_to_str(data_type: int) -> str:
     Returns:
         4-character type string
     """
-    bytes_val = data_type.to_bytes(4, byteorder='big')
-    return bytes_val.decode('ascii', errors='replace')
+    bytes_val = data_type.to_bytes(4, byteorder="big")
+    return bytes_val.decode("ascii", errors="replace")

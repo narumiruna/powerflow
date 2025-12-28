@@ -4,23 +4,27 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 import sys
-import os
 
 DB_PATH = "./powerflow.db"
 LIMIT = 20
 
+
 def fetch_history(limit=LIMIT):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT timestamp, watts_actual, watts_negotiated, voltage, amperage, battery_percent, is_charging, external_connected
         FROM power_readings
         ORDER BY timestamp DESC
         LIMIT ?
-    """, (limit,))
+    """,
+        (limit,),
+    )
     rows = cursor.fetchall()
     conn.close()
     return rows
+
 
 def stats_block(rows):
     if not rows:
@@ -43,6 +47,7 @@ def stats_block(rows):
 平均電池: {avg_percent:.1f}%
 [/bold cyan]"""
 
+
 def table_block(rows):
     table = Table(title="最近記錄", box=box.SIMPLE)
     table.add_column("時間", style="yellow")
@@ -61,11 +66,13 @@ def table_block(rows):
             f"{r[3]:.2f}",
             f"{r[4]:.2f}",
             f"{r[5]}%",
-            status
+            status,
         )
     return table
 
+
 # chart_block removed (no chart output)
+
 
 def main():
     limit = LIMIT
@@ -76,6 +83,7 @@ def main():
     console.print(Panel(stats_block(rows), title="統計資訊", border_style="cyan"))
     console.print(table_block(rows))
     # chart_block removed
+
 
 if __name__ == "__main__":
     main()

@@ -144,7 +144,7 @@ MobileDevice.framework is a private Apple framework (ships with Xcode) for commu
 Key functions linked from `MobileDevice.framework`:
 
 - `AMDeviceNotificationSubscribe(callback, 0, 0, context, &notification)`: Subscribe to device attach/detach events
-- `AMDeviceCopyDeviceIdentifier(device)`: Get UDID
+- `AMDeviceCopyDeviceIdentifier(device)`: Get UUID
 - `AMDeviceCopyValue(device, domain, key)`: Read device properties (e.g., "DeviceName")
 - `AMDeviceGetInterfaceType(device)`: Returns USB(1) or WiFi(2)
 - `AMDeviceConnect(device)`: Connect to device
@@ -295,9 +295,9 @@ CREATE TABLE charging_histories (
     detail BLOB NOT NULL  -- JSON serialized ChargingHistoryDetail
 );
 
--- 20250104055910_add_name_with_udid.sql
+-- 20250104055910_add_name_with_uuid.sql
 ALTER TABLE charging_histories ADD COLUMN name TEXT NOT NULL DEFAULT '';
-ALTER TABLE charging_histories ADD COLUMN udid TEXT NOT NULL DEFAULT '';
+ALTER TABLE charging_histories ADD COLUMN uuid TEXT NOT NULL DEFAULT '';
 ALTER TABLE charging_histories ADD COLUMN is_remote INTEGER NOT NULL DEFAULT 0;
 
 -- 20250106111532_add_adapter_info.sql

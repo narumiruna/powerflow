@@ -1,6 +1,6 @@
 from rich.table import Table
-from rich.panel import Panel
 from rich import box
+
 
 def stats_block(rows):
     if not rows:
@@ -23,6 +23,7 @@ def stats_block(rows):
 平均電池: {avg_percent:.1f}%
 [/bold cyan]"""
 
+
 def table_block(rows):
     table = Table(title="最近記錄", box=box.SIMPLE)
     table.add_column("時間", style="yellow")
@@ -41,6 +42,6 @@ def table_block(rows):
             f"{r[3]:.2f}",
             f"{r[4]:.2f}",
             f"{r[5]}%",
-            status
+            status,
         )
     return table

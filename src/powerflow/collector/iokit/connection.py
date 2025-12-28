@@ -1,7 +1,6 @@
 """SMC connection for reading sensor values."""
 
 import ctypes
-from typing import Optional
 
 from .bindings import (
     KERN_SUCCESS,
@@ -14,8 +13,6 @@ from .bindings import (
     IOServiceClose,
     IOConnectCallStructMethod,
     mach_task_self,
-    io_connect_t,
-    io_object_t,
 )
 from .structures import (
     SMCKeyData,
@@ -32,6 +29,7 @@ from .parser import bytes_to_float
 
 class SMCError(Exception):
     """SMC operation error."""
+
     pass
 
 
@@ -70,9 +68,7 @@ class SMCConnection:
         # Get matching services
         iterator = ctypes.c_uint32(0)
         kr = IOServiceGetMatchingServices(
-            master_port.value,
-            matching,
-            ctypes.byref(iterator)
+            master_port.value, matching, ctypes.byref(iterator)
         )
         if kr != KERN_SUCCESS:
             raise SMCError(f"IOServiceGetMatchingServices failed: {kr}")
@@ -86,12 +82,7 @@ class SMCConnection:
 
         # Open connection to service
         connection = ctypes.c_uint32(0)
-        kr = IOServiceOpen(
-            self.service,
-            mach_task_self(),
-            0,
-            ctypes.byref(connection)
-        )
+        kr = IOServiceOpen(self.service, mach_task_self(), 0, ctypes.byref(connection))
         if kr != KERN_SUCCESS:
             IOObjectRelease(self.service)
             raise SMCError(f"IOServiceOpen failed: {kr}")

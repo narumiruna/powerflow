@@ -111,6 +111,7 @@ class Database:
         conn.commit()
         conn.close()
 
+        assert row_id is not None, "Failed to insert reading"
         return row_id
 
     def query_history(self, limit: int = 20) -> list[PowerReading]:

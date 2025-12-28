@@ -15,7 +15,9 @@ class PowerReading:
     timestamp: datetime
 
     # Power metrics
-    watts_actual: float  # Actual power flow: positive = charging, negative = discharging (W)
+    watts_actual: (
+        float  # Actual power flow: positive = charging, negative = discharging (W)
+    )
     watts_negotiated: int  # PD negotiated maximum power (W)
 
     # Electrical details
@@ -61,16 +63,19 @@ class AdapterDetail:
 
 class PowerCollectorError(Exception):
     """Base exception for power collection errors."""
+
     pass
 
 
 class CommandFailedError(PowerCollectorError):
     """ioreg command execution failed."""
+
     pass
 
 
 class ParseError(PowerCollectorError):
     """Plist/data parsing failed."""
+
     pass
 
 
@@ -84,4 +89,5 @@ class MissingFieldError(PowerCollectorError):
 
 class IOKitError(PowerCollectorError):
     """IOKit/SMC API error."""
+
     pass

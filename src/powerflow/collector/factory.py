@@ -31,6 +31,7 @@ def default_collector(verbose: bool = False) -> PowerCollector:
     # Falls back to IORegCollector if SMC access fails
     try:
         from .iokit import IOKitCollector
+
         if verbose:
             print("Using IOKitCollector (SMC sensors)")
         return IOKitCollector(verbose=verbose)

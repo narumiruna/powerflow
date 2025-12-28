@@ -24,13 +24,14 @@ SMC_SENSORS = {
 @dataclass
 class SMCPowerData:
     """SMC power sensor readings."""
-    battery_power: Optional[float] = None      # PPBR
-    power_input: Optional[float] = None        # PDTR (most accurate)
-    system_power: Optional[float] = None       # PSTR
-    heatpipe_power: Optional[float] = None     # PHPC
-    display_power: Optional[float] = None      # PDBR
-    battery_temp: Optional[float] = None       # TB0T
-    charging_status: Optional[float] = None    # CHCC
+
+    battery_power: Optional[float] = None  # PPBR
+    power_input: Optional[float] = None  # PDTR (most accurate)
+    system_power: Optional[float] = None  # PSTR
+    heatpipe_power: Optional[float] = None  # PHPC
+    display_power: Optional[float] = None  # PDBR
+    battery_temp: Optional[float] = None  # TB0T
+    charging_status: Optional[float] = None  # CHCC
 
 
 class IOKitCollector(PowerCollector):
