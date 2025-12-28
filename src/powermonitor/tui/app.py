@@ -1,6 +1,7 @@
 """powermonitor Textual TUI Application - auto-updating power monitoring interface."""
 
 import asyncio
+import contextlib
 
 from textual.app import App
 from textual.app import ComposeResult
@@ -99,10 +100,8 @@ class PowerMonitorApp(App):
         """Clean up when app unmounts."""
         if self._collector_task:
             self._collector_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._collector_task
-            except asyncio.CancelledError:
-                pass
 
     async def _collection_loop(self) -> None:
         """Background loop for periodic power data collection.
