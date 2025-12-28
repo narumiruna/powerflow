@@ -5,7 +5,7 @@ import sys
 import typer
 from loguru import logger
 
-from .tui.app import run_app
+from .tui.app import PowerMonitorApp
 
 
 def main() -> None:
@@ -20,7 +20,7 @@ def main() -> None:
 
     # Launch TUI
     try:
-        run_app()
+        PowerMonitorApp().run()
     except KeyboardInterrupt:
         logger.info("Exiting powermonitor...")
         sys.exit(0)

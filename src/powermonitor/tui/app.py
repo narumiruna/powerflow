@@ -188,13 +188,3 @@ class PowerMonitorApp(App):
     async def action_quit(self) -> None:
         """Handle quit action (Q or ESC)."""
         self.exit()
-
-
-def run_app() -> None:
-    """Run the powermonitor TUI app."""
-    app = PowerMonitorApp()
-    app.run()
-
-
-if __name__ == "__main__":
-    run_app()
