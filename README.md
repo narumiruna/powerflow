@@ -22,26 +22,13 @@ macOS power monitoring tool with auto-updating TUI for real-time battery and cha
 ### Install with uv (recommended)
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd powermonitor
-
-# Install dependencies
-uv sync
-
-# Run powermonitor
-uv run powermonitor
+uv tool install powermonitor
 ```
 
-### Install as a package
+### Install with pipx
 
 ```bash
-# Install from source
-cd powermonitor
-uv pip install -e .
-
-# Run from anywhere
-powermonitor
+pipx install powermonitor
 ```
 
 ## Usage
