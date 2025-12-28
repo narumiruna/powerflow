@@ -2,6 +2,7 @@
 
 import sys
 
+import typer
 from loguru import logger
 
 from .tui.app import run_app
@@ -29,4 +30,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
