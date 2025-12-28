@@ -127,8 +127,8 @@ class PowerFlowApp(App):
             # Save to database (also blocking, run in executor)
             await loop.run_in_executor(None, self.database.insert_reading, reading)
 
-            # Update all widgets (UI operations, run on main thread)
-            self.call_from_thread(self._update_all_widgets, reading)
+            # Update all widgets (already on main thread after await)
+            self._update_all_widgets(reading)
 
         except Exception as e:
             self.notify(f"Failed to collect data: {e}", severity="error", timeout=5)

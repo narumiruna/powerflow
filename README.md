@@ -92,7 +92,7 @@ uv run python -c "from powerflow.collector import default_collector; print(defau
 ## Requirements
 
 - **macOS**: 12.0+ (Monterey or later)
-- **Python**: 3.12+ (uses modern type hints)
+- **Python**: 3.13+ (uses modern type hints)
 - **Dependencies**: textual, rich, textual-plotext (auto-installed by uv)
 
 ## Architecture

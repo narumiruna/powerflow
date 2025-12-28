@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PowerFlow is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.12+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
+PowerFlow is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
 
 **Current Status**: Fully migrated from Rust to Python. Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
 
@@ -311,7 +311,7 @@ AppleRawAdapterDetails   → charger info array
 ## Platform Support
 
 - **Required**: macOS 12.0+ (Monterey or later)
-- **Python**: 3.12+ (uses modern type hints: `str | None`, etc.)
+- **Python**: 3.13+ (uses modern type hints: `str | None`, etc.)
 - **Dependencies**: textual, rich, textual-plotext (managed by uv)
 - **macOS-only**: Uses IOKit framework and ioreg command
 
