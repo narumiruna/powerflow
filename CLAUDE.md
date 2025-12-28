@@ -278,9 +278,9 @@ uv run ruff format src/
 **To add a new TUI widget:**
 
 1. Create widget class in `src/powermonitor/tui/widgets.py`
-2. Add to layout in `powermonitorApp.compose()` in `src/powermonitor/tui/app.py`
+2. Add to layout in `PowerMonitorApp.compose()` in `src/powermonitor/tui/app.py`
 3. Update widget in `_update_all_widgets()`
-4. Add CSS styling to `powermonitorApp.CSS`
+4. Add CSS styling to `PowerMonitorApp.CSS`
 
 ### Testing
 

@@ -2,4 +2,4 @@
 
 from .app import PowerMonitorApp
 
-__all__ = ["powermonitorApp"]
+__all__ = ["PowerMonitorApp"]

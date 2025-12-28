@@ -167,7 +167,7 @@ powermonitor/
 │       │       ├── connection.py # SMCConnection
 │       │       └── collector.py # IOKitCollector
 │       └── tui/                # Textual TUI
-│           ├── app.py          # powermonitorApp
+│           ├── app.py          # PowerMonitorApp
 │           └── widgets.py      # Custom widgets
 └── tests/
     └── fixtures/               # Test data
