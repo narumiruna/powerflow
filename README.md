@@ -2,10 +2,6 @@
 
 macOS power monitoring tool with auto-updating TUI for real-time battery and charging status.
 
-## Status
-
-**Fully Migrated to Python**: Complete TUI implementation with auto-updating display, IOKit/SMC FFI, and SQLite history tracking.
-
 ## Features
 
 - 🖥️ **Auto-updating TUI** with 3-panel layout (Textual framework)
