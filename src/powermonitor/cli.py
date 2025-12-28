@@ -1,14 +1,28 @@
 """powermonitor CLI entry point - launches TUI by default."""
 
 import sys
+from typing import Annotated
 
 import typer
 from loguru import logger
 
 from .tui.app import PowerMonitorApp
 
+app = typer.Typer()
 
-def main() -> None:
+
+@app.command()
+def main(
+    interval: Annotated[
+        float,
+        typer.Option(
+            "-i",
+            "--interval",
+            help="Data collection interval in seconds",
+            show_default=True,
+        ),
+    ] = 1.0,
+) -> None:
     """Main entry point for powermonitor CLI.
 
     Directly launches the Textual TUI (no subcommands needed).
@@ -20,14 +34,11 @@ def main() -> None:
 
     # Launch TUI
     try:
-        PowerMonitorApp().run()
+        logger.info("Starting powermonitor TUI...")
+        PowerMonitorApp(collection_interval=interval).run()
     except KeyboardInterrupt:
         logger.info("Exiting powermonitor...")
         sys.exit(0)
     except Exception as e:
         logger.exception(f"Fatal error: {e}")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    typer.run(main)

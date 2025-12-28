@@ -65,11 +65,11 @@ class PowerMonitorApp(App):
 
     TITLE = "powermonitor - macOS Power Monitoring"
 
-    def __init__(self, **kwargs):
+    def __init__(self, collection_interval: float = 2.0, **kwargs):
         super().__init__(**kwargs)
         self.collector = default_collector()
         self.database = Database(DB_PATH)
-        self.collection_interval = 2.0  # seconds
+        self.collection_interval = collection_interval  # seconds
         self._collector_task: asyncio.Task | None = None
 
     def compose(self) -> ComposeResult:
