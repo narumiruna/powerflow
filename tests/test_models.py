@@ -1,7 +1,7 @@
 """Tests for PowerReading model."""
 
+from datetime import UTC
 from datetime import datetime
-from datetime import timezone
 
 from powermonitor.models import PowerReading
 
@@ -24,7 +24,7 @@ def test_power_reading_creation(sample_reading):
 def test_power_reading_timestamp():
     """Test PowerReading timestamp is datetime with timezone."""
     reading = PowerReading(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         watts_actual=0.0,
         watts_negotiated=0,
         voltage=0.0,
@@ -45,7 +45,7 @@ def test_power_reading_timestamp():
 def test_power_reading_optional_fields():
     """Test PowerReading with optional fields as None."""
     reading = PowerReading(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         watts_actual=10.5,
         watts_negotiated=0,
         voltage=12.0,
@@ -66,7 +66,7 @@ def test_power_reading_optional_fields():
 def test_power_reading_negative_discharge():
     """Test PowerReading with negative watts_actual (discharging)."""
     reading = PowerReading(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         watts_actual=-15.2,  # Negative = discharging
         watts_negotiated=0,
         voltage=12.5,
@@ -88,7 +88,7 @@ def test_power_reading_negative_discharge():
 def test_power_reading_full_battery():
     """Test PowerReading at 100% battery."""
     reading = PowerReading(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         watts_actual=0.0,
         watts_negotiated=70,
         voltage=13.34,
