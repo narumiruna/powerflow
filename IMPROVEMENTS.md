@@ -2,161 +2,22 @@
 
 This document outlines recommended improvements for the powermonitor project, organized by priority.
 
-## Critical Issues
+## Completed Issues ✅
 
-### 1. Database Connection Management
+### Critical Issues (Phase 1)
 
-**File**: `src/powermonitor/database.py`
+**1. Database Connection Management** - ✅ Completed (commit `376154f`, 2026-01-06)
+- Implemented Option B: Context managers for all database operations
+- Added error handling for database writes in TUI app
+- All 25 tests pass, 89% database coverage
+- Files: `src/powermonitor/database.py`, `src/powermonitor/tui/app.py`
 
-**Problem**: Each database operation opens and closes a new SQLite connection, causing unnecessary overhead.
+**2. Resource Cleanup in Error Paths** - ✅ Completed (fixed by #1)
+- Context managers ensure proper connection cleanup on errors
 
-**Current Code** (repeated pattern in `insert_reading`, `query_history`, etc.):
-```python
-def insert_reading(self, reading: PowerReading) -> int:
-    conn = sqlite3.connect(self.db_path)  # New connection each time
-    cursor = conn.cursor()
-    # ... operations ...
-    conn.commit()
-    conn.close()
-    return row_id
-```
-
-**Recommendation**: Use persistent connection or connection pooling.
-
-**Option A - Single persistent connection** (simpler, suitable for single-threaded use):
-```python
-class Database:
-    def __init__(self, db_path: Path | str = DB_PATH):
-        self.db_path = Path(db_path)
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self._init_schema()
-
-    def insert_reading(self, reading: PowerReading) -> int:
-        cursor = self._conn.cursor()
-        # ... operations ...
-        self._conn.commit()
-        return cursor.lastrowid
-
-    def close(self):
-        if self._conn:
-            self._conn.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-```
-
-**Option B - Connection per operation with context manager** (thread-safe):
-```python
-def insert_reading(self, reading: PowerReading) -> int:
-    with sqlite3.connect(self.db_path) as conn:
-        cursor = conn.cursor()
-        # ... operations ...
-        return cursor.lastrowid
-```
-
-**Benefits**:
-- Reduces connection overhead
-- Better performance for frequent operations
-- Option A: ~50% faster for sequential operations
-- Option B: Automatic connection cleanup on errors
-
----
-
-### 2. Resource Cleanup in Error Paths
-
-**File**: `src/powermonitor/database.py`
-
-**Problem**: If an exception occurs during database operations, connections may not close properly, leading to resource leaks.
-
-**Current Code**:
-```python
-def insert_reading(self, reading: PowerReading) -> int:
-    conn = sqlite3.connect(self.db_path)
-    cursor = conn.cursor()
-    # If exception happens here, conn.close() never called
-    cursor.execute(...)
-    conn.commit()
-    conn.close()
-```
-
-**Recommendation**: Use context managers or try/finally blocks:
-
-```python
-def insert_reading(self, reading: PowerReading) -> int:
-    with sqlite3.connect(self.db_path) as conn:
-        cursor = conn.cursor()
-        cursor.execute(...)
-        return cursor.lastrowid
-```
-
-Or with try/finally:
-```python
-def insert_reading(self, reading: PowerReading) -> int:
-    conn = sqlite3.connect(self.db_path)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(...)
-        conn.commit()
-        return cursor.lastrowid
-    finally:
-        conn.close()
-```
-
----
-
-### 3. Missing Error Handling for Database Writes
-
-**File**: `src/powermonitor/tui/app.py:131`
-
-**Problem**: Database insert failures are silently ignored, leading to data loss without user notification.
-
-**Current Code**:
-```python
-async def _collect_and_update(self) -> None:
-    try:
-        loop = asyncio.get_event_loop()
-        reading = await loop.run_in_executor(None, self.collector.collect)
-
-        # Database failure is not caught
-        await loop.run_in_executor(None, self.database.insert_reading, reading)
-
-        self._update_all_widgets(reading)
-    except Exception as e:
-        self.notify(f"Failed to collect data: {e}", severity="error", timeout=5)
-```
-
-**Recommendation**: Separate error handling for collection vs. persistence:
-
-```python
-async def _collect_and_update(self) -> None:
-    try:
-        loop = asyncio.get_event_loop()
-        reading = await loop.run_in_executor(None, self.collector.collect)
-
-        # Try to save to database, but continue if it fails
-        try:
-            await loop.run_in_executor(None, self.database.insert_reading, reading)
-        except Exception as db_error:
-            self.notify(
-                f"Warning: Failed to save reading to database: {db_error}",
-                severity="warning",
-                timeout=3
-            )
-
-        # Update UI even if save failed
-        self._update_all_widgets(reading)
-
-    except Exception as e:
-        self.notify(f"Failed to collect data: {e}", severity="error", timeout=5)
-```
-
-**Benefits**:
-- User is notified of database issues
-- UI continues updating even if persistence fails
-- Separates collection failures from storage failures
+**3. Missing Error Handling for Database Writes** - ✅ Completed (commit `376154f`)
+- TUI now displays warnings on database failures without crashing
+- UI continues working even if persistence fails
 
 ---
 
@@ -943,10 +804,10 @@ def get_battery_health_trend(self, days: int = 30) -> dict:
 
 ## Implementation Priority
 
-### Phase 1 (Critical - Do First)
-1. Fix database connection management (#1)
-2. Add resource cleanup (#2)
-3. Add database write error handling (#3)
+### Phase 1 (Critical - Do First) ✅ COMPLETED
+1. ✅ Fix database connection management (#1)
+2. ✅ Add resource cleanup (#2)
+3. ✅ Add database write error handling (#3)
 
 ### Phase 2 (Important - Do Soon)
 4. Replace magic numbers with constants (#4)
