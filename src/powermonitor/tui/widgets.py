@@ -167,8 +167,9 @@ class ChartWidget(Container):
         plot.plt.plot(x, watts, label="Power (W)", color="red")
         plot.plt.plot(x, max_watts, label="Max Power (W)", color="blue")
 
-        # Configure chart
-        plot.plt.title("Power Over Time (Last 60 readings)")
+        # Configure chart with dynamic title based on actual readings count
+        reading_count = len(self.readings)
+        plot.plt.title(f"Power Over Time (Last {reading_count} readings)")
         plot.plt.xlabel("Time (Oldest → Newest)")
         plot.plt.ylabel("Power (W)")
 

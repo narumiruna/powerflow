@@ -11,6 +11,7 @@ from textual.widgets import Footer
 from textual.widgets import Header
 
 from ..collector import default_collector
+from ..config import PowerMonitorConfig
 from ..database import DB_PATH
 from ..database import Database
 from ..models import PowerReading
@@ -65,11 +66,11 @@ class PowerMonitorApp(App):
 
     TITLE = "powermonitor - macOS Power Monitoring"
 
-    def __init__(self, collection_interval: float = 1.0, **kwargs):
+    def __init__(self, config: PowerMonitorConfig | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
+        self.config = config or PowerMonitorConfig()
         self.collector = default_collector()
         self.database = Database(DB_PATH)
-        self.collection_interval = collection_interval  # seconds
         self._collector_task: asyncio.Task | None = None
 
     def compose(self) -> ComposeResult:
@@ -110,7 +111,7 @@ class PowerMonitorApp(App):
         """
         while True:
             try:
-                await asyncio.sleep(self.collection_interval)
+                await asyncio.sleep(self.config.collection_interval)
                 await self._collect_and_update()
             except asyncio.CancelledError:
                 break
@@ -154,12 +155,12 @@ class PowerMonitorApp(App):
         live_panel.update_reading(reading)
 
         # Update statistics panel
-        stats = self.database.get_statistics(limit=100)
+        stats = self.database.get_statistics(limit=self.config.stats_history_limit)
         stats_panel = self.query_one("#stats", StatsPanel)
         stats_panel.update_stats(stats)
 
         # Update chart with last 60 readings
-        history = self.database.query_history(limit=60)
+        history = self.database.query_history(limit=self.config.chart_history_limit)
         chart = self.query_one("#chart", ChartWidget)
         chart.update_chart(history)
 

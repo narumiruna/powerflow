@@ -19,106 +19,26 @@ This document outlines recommended improvements for the powermonitor project, or
 - TUI now displays warnings on database failures without crashing
 - UI continues working even if persistence fails
 
----
+### Moderate Issues (Phase 2)
 
-## Moderate Issues
+**4. Magic Numbers Throughout Codebase** - ✅ Completed (commit `8a89f57`, 2026-01-06)
+- Created `PowerMonitorConfig` dataclass with validation
+- Replaced hardcoded values: collection_interval, stats_history_limit, chart_history_limit
+- Added CLI options: `--interval`, `--stats-limit`, `--chart-limit`
+- Implemented `__post_init__` validation with helpful error messages
+- Dynamic chart title based on actual reading count
+- 11 config tests pass, 100% config coverage
+- Files: `src/powermonitor/config.py`, `src/powermonitor/cli.py`, `src/powermonitor/tui/app.py`, `src/powermonitor/tui/widgets.py`
 
-### 4. Magic Numbers Throughout Codebase
-
-**Files**: Multiple
-
-**Problem**: Hardcoded limits and intervals scattered throughout code make configuration difficult.
-
-**Locations**:
-- `src/powermonitor/tui/app.py:72` - `collection_interval = 1.0`
-- `src/powermonitor/tui/app.py:150` - `limit=100` (statistics)
-- `src/powermonitor/tui/app.py:155` - `limit=60` (chart history)
-- `src/powermonitor/tui/widgets.py:171` - Chart title references hardcoded "60"
-
-**Recommendation**: Define as class constants with descriptive names:
-
-```python
-class PowerMonitorApp(App):
-    """powermonitor TUI application."""
-
-    # Configuration constants
-    DEFAULT_COLLECTION_INTERVAL = 1.0  # seconds
-    STATS_HISTORY_LIMIT = 100         # number of readings for statistics
-    CHART_HISTORY_LIMIT = 60          # number of readings to display in chart
-
-    # ... existing code ...
-
-    def __init__(self, collection_interval: float = DEFAULT_COLLECTION_INTERVAL, **kwargs):
-        super().__init__(**kwargs)
-        self.collection_interval = collection_interval
-        # ...
-
-    def _update_all_widgets(self, reading: PowerReading) -> None:
-        stats = self.database.get_statistics(limit=self.STATS_HISTORY_LIMIT)
-        history = self.database.query_history(limit=self.CHART_HISTORY_LIMIT)
-        # ...
-```
+**5. Insufficient Input Validation** - ✅ Completed (fixed by #4)
+- PowerMonitorConfig validates all inputs in `__post_init__`
+- CLI catches ValueError from config and exits with error message
+- Validates: positive values, warns on very short intervals (< 0.1s)
+- All validation covered by tests
 
 ---
 
-### 5. Insufficient Input Validation
-
-**File**: `src/powermonitor/cli.py:16-24`
-
-**Problem**: CLI accepts invalid interval values (negative, zero, extremely small).
-
-**Current Code**:
-```python
-def main(interval: Annotated[float, ...] = 1.0) -> None:
-    """Main entry point for powermonitor CLI."""
-    # No validation of interval value
-    PowerMonitorApp(collection_interval=interval).run()
-```
-
-**Recommendation**: Add input validation:
-
-```python
-def main(
-    interval: Annotated[
-        float,
-        typer.Option(
-            "-i",
-            "--interval",
-            help="Data collection interval in seconds",
-            show_default=True,
-        ),
-    ] = 1.0,
-) -> None:
-    """Main entry point for powermonitor CLI."""
-    # Validate interval
-    if interval <= 0:
-        logger.error("Collection interval must be positive (got {interval})")
-        raise typer.Exit(code=1)
-
-    if interval < 0.1:
-        logger.warning(
-            f"Very short interval ({interval}s) may cause high CPU usage. "
-            "Recommended minimum: 0.5s"
-        )
-
-    # Check platform
-    if sys.platform != "darwin":
-        logger.error("powermonitor only supports macOS")
-        raise typer.Exit(code=1)
-
-    # Launch TUI
-    try:
-        logger.info("Starting powermonitor TUI...")
-        PowerMonitorApp(collection_interval=interval).run()
-    except KeyboardInterrupt:
-        logger.info("Exiting powermonitor...")
-        raise typer.Exit(code=0)
-    except Exception as e:
-        logger.exception(f"Fatal error: {e}")
-        raise typer.Exit(code=1)
-```
-
----
+## Moderate Issues (Remaining)
 
 ### 6. Limited Logging Configuration
 
@@ -809,9 +729,9 @@ def get_battery_health_trend(self, days: int = 30) -> dict:
 2. ✅ Add resource cleanup (#2)
 3. ✅ Add database write error handling (#3)
 
-### Phase 2 (Important - Do Soon)
-4. Replace magic numbers with constants (#4)
-5. Add input validation (#5)
+### Phase 2 (Important - Do Soon) - In Progress
+4. ✅ Replace magic numbers with constants (#4)
+5. ✅ Add input validation (#5)
 6. Configure logging properly (#6)
 7. Fix singleton pattern bug (#7)
 

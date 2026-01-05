@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 from loguru import logger
 
+from .config import PowerMonitorConfig
 from .tui.app import PowerMonitorApp
 
 app = typer.Typer()
@@ -22,6 +23,22 @@ def main(
             show_default=True,
         ),
     ] = 1.0,
+    stats_limit: Annotated[
+        int,
+        typer.Option(
+            "--stats-limit",
+            help="Number of readings to include in statistics",
+            show_default=True,
+        ),
+    ] = 100,
+    chart_limit: Annotated[
+        int,
+        typer.Option(
+            "--chart-limit",
+            help="Number of readings to display in chart",
+            show_default=True,
+        ),
+    ] = 60,
 ) -> None:
     """Main entry point for powermonitor CLI.
 
@@ -32,10 +49,21 @@ def main(
         logger.error("powermonitor only supports macOS")
         sys.exit(1)
 
+    # Create configuration with validation
+    try:
+        config = PowerMonitorConfig(
+            collection_interval=interval,
+            stats_history_limit=stats_limit,
+            chart_history_limit=chart_limit,
+        )
+    except ValueError as e:
+        logger.error(f"Invalid configuration: {e}")
+        sys.exit(1)
+
     # Launch TUI
     try:
         logger.info("Starting powermonitor TUI...")
-        PowerMonitorApp(collection_interval=interval).run()
+        PowerMonitorApp(config=config).run()
     except KeyboardInterrupt:
         logger.info("Exiting powermonitor...")
         sys.exit(0)
