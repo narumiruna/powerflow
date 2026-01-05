@@ -1,7 +1,8 @@
 """Tests for PowerMonitorConfig."""
 
-import pytest
 import warnings
+
+import pytest
 
 from powermonitor.config import PowerMonitorConfig
 
