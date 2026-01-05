@@ -2,33 +2,26 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: mixed-line-ending
       - id: check-yaml
       - id: end-of-file-fixer
-
-  - repo: https://github.com/crate-ci/typos
-    rev: typos-dict-v0.13.13
-    hooks:
-      - id: typos
-
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.10
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.18
+    rev: 0.9.21
     hooks:
       - id: uv-lock
-
-  - repo: local
+  - repo: https://github.com/narumiruna/ty-pre-commit
+    rev: v0.0.1
     hooks:
       - id: ty-check
-        name: ty check
-        entry: uv run ty check .
-        language: system
-        types: [python]
-        pass_filenames: false
+  - repo: https://github.com/tombi-toml/tombi-pre-commit
+    rev: v0.7.14
+    hooks:
+      - id: tombi-format
