@@ -17,6 +17,7 @@ repos:
     rev: 0.9.21
     hooks:
       - id: uv-lock
+      - id: uv-sync
   - repo: https://github.com/narumiruna/ty-pre-commit
     rev: v0.0.1
     hooks:
