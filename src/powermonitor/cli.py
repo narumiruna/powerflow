@@ -7,6 +7,7 @@ import typer
 from loguru import logger
 
 from .config import PowerMonitorConfig
+from .logger import setup_logger
 from .tui.app import PowerMonitorApp
 
 app = typer.Typer()
@@ -39,11 +40,25 @@ def main(
             show_default=True,
         ),
     ] = 60,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable debug logging",
+            show_default=True,
+        ),
+    ] = False,
 ) -> None:
     """Main entry point for powermonitor CLI.
 
     Directly launches the Textual TUI (no subcommands needed).
     """
+    # Setup logging
+    if debug:
+        setup_logger(level="DEBUG")
+    else:
+        setup_logger(level="INFO")
+
     # Check platform
     if sys.platform != "darwin":
         logger.error("powermonitor only supports macOS")
