@@ -127,8 +127,15 @@ class PowerMonitorApp(App):
             loop = asyncio.get_event_loop()
             reading = await loop.run_in_executor(None, self.collector.collect)
 
-            # Save to database (also blocking, run in executor)
-            await loop.run_in_executor(None, self.database.insert_reading, reading)
+            # Try to save to database, but continue updating UI even if it fails
+            try:
+                await loop.run_in_executor(None, self.database.insert_reading, reading)
+            except Exception as db_error:
+                self.notify(
+                    f"Warning: Failed to save reading to database: {db_error}",
+                    severity="warning",
+                    timeout=3,
+                )
 
             # Update all widgets (already on main thread after await)
             self._update_all_widgets(reading)
@@ -160,7 +167,17 @@ class PowerMonitorApp(App):
         """Force refresh all data (for 'r' key binding)."""
         try:
             reading = self.collector.collect()
-            self.database.insert_reading(reading)
+
+            # Try to save to database, but continue even if it fails
+            try:
+                self.database.insert_reading(reading)
+            except Exception as db_error:
+                self.notify(
+                    f"Warning: Failed to save reading: {db_error}",
+                    severity="warning",
+                    timeout=3,
+                )
+
             self._update_all_widgets(reading)
             self.notify("Data refreshed", timeout=2)
         except Exception as e:

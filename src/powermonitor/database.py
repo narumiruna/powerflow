@@ -50,36 +50,34 @@ class Database:
 
         Complete schema with all 12 PowerReading fields.
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-        # Create table with all 12 fields (was missing 4 fields in old version)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS power_readings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                watts_actual REAL NOT NULL,
-                watts_negotiated INTEGER NOT NULL,
-                voltage REAL NOT NULL,
-                amperage REAL NOT NULL,
-                current_capacity INTEGER NOT NULL,
-                max_capacity INTEGER NOT NULL,
-                battery_percent INTEGER NOT NULL,
-                is_charging INTEGER NOT NULL,
-                external_connected INTEGER NOT NULL,
-                charger_name TEXT,
-                charger_manufacturer TEXT
-            )
-        """)
+            # Create table with all 12 fields (was missing 4 fields in old version)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS power_readings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    watts_actual REAL NOT NULL,
+                    watts_negotiated INTEGER NOT NULL,
+                    voltage REAL NOT NULL,
+                    amperage REAL NOT NULL,
+                    current_capacity INTEGER NOT NULL,
+                    max_capacity INTEGER NOT NULL,
+                    battery_percent INTEGER NOT NULL,
+                    is_charging INTEGER NOT NULL,
+                    external_connected INTEGER NOT NULL,
+                    charger_name TEXT,
+                    charger_manufacturer TEXT
+                )
+            """)
 
-        # Create index on timestamp for faster queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_timestamp
-            ON power_readings(timestamp DESC)
-        """)
-
-        conn.commit()
-        conn.close()
+            # Create index on timestamp for faster queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_timestamp
+                ON power_readings(timestamp DESC)
+            """)
+            # Commit is automatic with context manager
 
     def insert_reading(self, reading: PowerReading) -> int:
         """Insert power reading into database.
@@ -90,48 +88,47 @@ class Database:
         Returns:
             Row ID of inserted reading
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO power_readings (
-                timestamp,
-                watts_actual,
-                watts_negotiated,
-                voltage,
-                amperage,
-                current_capacity,
-                max_capacity,
-                battery_percent,
-                is_charging,
-                external_connected,
-                charger_name,
-                charger_manufacturer
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                reading.timestamp.isoformat(),  # RFC3339 format
-                reading.watts_actual,
-                reading.watts_negotiated,
-                reading.voltage,
-                reading.amperage,
-                reading.current_capacity,
-                reading.max_capacity,
-                reading.battery_percent,
-                1 if reading.is_charging else 0,
-                1 if reading.external_connected else 0,
-                reading.charger_name,
-                reading.charger_manufacturer,
-            ),
-        )
+            cursor.execute(
+                """
+                INSERT INTO power_readings (
+                    timestamp,
+                    watts_actual,
+                    watts_negotiated,
+                    voltage,
+                    amperage,
+                    current_capacity,
+                    max_capacity,
+                    battery_percent,
+                    is_charging,
+                    external_connected,
+                    charger_name,
+                    charger_manufacturer
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    reading.timestamp.isoformat(),  # RFC3339 format
+                    reading.watts_actual,
+                    reading.watts_negotiated,
+                    reading.voltage,
+                    reading.amperage,
+                    reading.current_capacity,
+                    reading.max_capacity,
+                    reading.battery_percent,
+                    1 if reading.is_charging else 0,
+                    1 if reading.external_connected else 0,
+                    reading.charger_name,
+                    reading.charger_manufacturer,
+                ),
+            )
 
-        row_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+            row_id = cursor.lastrowid
+            # Commit is automatic with context manager
 
-        assert row_id is not None, "Failed to insert reading"
-        return row_id
+            assert row_id is not None, "Failed to insert reading"
+            return row_id
 
     def query_history(self, limit: int = 20) -> list[PowerReading]:
         """Query most recent power readings.
@@ -142,33 +139,32 @@ class Database:
         Returns:
             List of PowerReading objects, ordered by timestamp DESC
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT
-                timestamp,
-                watts_actual,
-                watts_negotiated,
-                voltage,
-                amperage,
-                current_capacity,
-                max_capacity,
-                battery_percent,
-                is_charging,
-                external_connected,
-                charger_name,
-                charger_manufacturer
-            FROM power_readings
-            ORDER BY timestamp DESC
-            LIMIT ?
-            """,
-            (limit,),
-        )
+            cursor.execute(
+                """
+                SELECT
+                    timestamp,
+                    watts_actual,
+                    watts_negotiated,
+                    voltage,
+                    amperage,
+                    current_capacity,
+                    max_capacity,
+                    battery_percent,
+                    is_charging,
+                    external_connected,
+                    charger_name,
+                    charger_manufacturer
+                FROM power_readings
+                ORDER BY timestamp DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
 
-        rows = cursor.fetchall()
-        conn.close()
+            rows = cursor.fetchall()
 
         # Convert rows to PowerReading objects
         readings = []
@@ -201,31 +197,30 @@ class Database:
         Returns:
             Dictionary with avg, min, max power and battery stats
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT
-                AVG(watts_actual) as avg_watts,
-                MIN(watts_actual) as min_watts,
-                MAX(watts_actual) as max_watts,
-                AVG(battery_percent) as avg_battery,
-                MIN(timestamp) as earliest,
-                MAX(timestamp) as latest,
-                COUNT(*) as count
-            FROM (
-                SELECT watts_actual, battery_percent, timestamp
-                FROM power_readings
-                ORDER BY timestamp DESC
-                LIMIT ?
+            cursor.execute(
+                """
+                SELECT
+                    AVG(watts_actual) as avg_watts,
+                    MIN(watts_actual) as min_watts,
+                    MAX(watts_actual) as max_watts,
+                    AVG(battery_percent) as avg_battery,
+                    MIN(timestamp) as earliest,
+                    MAX(timestamp) as latest,
+                    COUNT(*) as count
+                FROM (
+                    SELECT watts_actual, battery_percent, timestamp
+                    FROM power_readings
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                )
+                """,
+                (limit,),
             )
-            """,
-            (limit,),
-        )
 
-        row = cursor.fetchone()
-        conn.close()
+            row = cursor.fetchone()
 
         if row and row[6] > 0:  # count > 0
             return {
@@ -254,16 +249,14 @@ class Database:
         Returns:
             Number of rows deleted
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
 
-        cursor.execute("DELETE FROM power_readings")
-        rows_deleted = cursor.rowcount
+            cursor.execute("DELETE FROM power_readings")
+            rows_deleted = cursor.rowcount
+            # Commit is automatic with context manager
 
-        conn.commit()
-        conn.close()
-
-        return rows_deleted
+            return rows_deleted
 
 
 # Module-level convenience functions
