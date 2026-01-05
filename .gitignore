@@ -152,3 +152,6 @@ dmypy.json
 
 # Logs
 *.log
+
+# Claude
+.claude/settings.local.json
