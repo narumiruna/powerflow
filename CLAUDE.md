@@ -257,6 +257,15 @@ uv run ruff check src/
 uv run ruff format src/
 ```
 
+**Known Issues and Improvements:**
+See `IMPROVEMENTS.md` for a detailed roadmap of:
+- Critical issues (database connection management, error handling)
+- Moderate improvements (configuration, validation, logging)
+- Minor enhancements (tests, cleanup, shutdown handling)
+- Future feature ideas (export, data retention, battery health tracking)
+
+The improvement roadmap is organized by priority (Phases 1-4) to guide systematic refactoring.
+
 ### Adding New Features
 
 **To add a new data field to PowerReading:**
@@ -323,6 +332,7 @@ AppleRawAdapterDetails   → charger info array
 - `~/.powermonitor/powermonitor.db`: SQLite database (auto-created in user's home directory)
 - `.pre-commit-config.yaml`: Pre-commit hooks (ruff, ty, typos)
 - `tests/fixtures/real_mac.txt`: Sample ioreg output for testing
+- `IMPROVEMENTS.md`: Detailed improvement roadmap with prioritized issues and enhancement ideas
 
 ## Performance Targets
 
