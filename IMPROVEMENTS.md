@@ -56,6 +56,18 @@ This document outlines recommended improvements for the powermonitor project, or
 - Gives pending database writes time to complete (100ms sleep)
 - Files: `src/powermonitor/tui/app.py:206-226`
 
+### Phase 3 Completed
+
+**9. Inconsistent Error Handling in IOKit** - ✅ Completed (2026-01-06)
+- Added kern_return_t error code translation with `_get_kern_return_name()`
+- All IOKit function calls now have proper return value checking
+- Added return value checks for IOServiceClose and IOObjectRelease
+- Improved error messages with human-readable error names
+- Added comprehensive debug logging for all IOKit operations
+- close() method now always attempts cleanup of both resources
+- Added input validation for SMC keys (must be 4 characters)
+- Files: `src/powermonitor/collector/iokit/connection.py:28-275`
+
 ---
 
 ## Moderate Issues (Remaining)
@@ -242,51 +254,6 @@ async def test_app_refresh_action():
 - Catches UI regressions early
 - Documents expected widget behavior
 - Enables refactoring with confidence
-
----
-
-### 9. Inconsistent Error Handling in IOKit
-
-**File**: `src/powermonitor/collector/iokit/connection.py:60-62`
-
-**Problem**: Some IOKit calls check return codes, others don't. Missing NULL check for `IOServiceMatching` result.
-
-**Current Code**:
-```python
-# Get AppleSMC service
-matching = IOServiceMatching(b"AppleSMC\0")
-# No NULL check - what if it returns NULL?
-kr = IOServiceGetMatchingServices(master_port.value, matching, ctypes.byref(iterator))
-```
-
-**Recommendation**: Add NULL/error checks for all IOKit calls:
-
-```python
-def _open(self) -> None:
-    """Open IOKit connection to AppleSMC."""
-    # Get master port
-    master_port = ctypes.c_uint32(0)
-    kr = IOMasterPort(0, ctypes.byref(master_port))
-    if kr != KERN_SUCCESS:
-        raise SMCError(f"IOMasterPort failed with error code: {kr}")
-
-    # Find AppleSMC service
-    matching = IOServiceMatching(b"AppleSMC\0")
-    if not matching:
-        raise SMCError("IOServiceMatching returned NULL (out of memory?)")
-
-    # Get matching services
-    iterator = ctypes.c_uint32(0)
-    kr = IOServiceGetMatchingServices(
-        master_port.value,
-        matching,
-        ctypes.byref(iterator)
-    )
-    if kr != KERN_SUCCESS:
-        raise SMCError(f"IOServiceGetMatchingServices failed: {kr}")
-
-    # ... rest of function ...
-```
 
 ---
 
@@ -609,7 +576,7 @@ def get_battery_health_trend(self, days: int = 30) -> dict:
 
 ### Phase 3 (Nice to Have - When Time Permits) - In Progress
 8. Add TUI tests (#8)
-9. Improve IOKit error handling (#9)
+9. ✅ Improve IOKit error handling (#9)
 10. Add configuration file support (#10)
 11. ✅ Remove redundant pass statements (#11)
 12. ✅ Improve shutdown sequence (#12)
