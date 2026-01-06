@@ -152,6 +152,9 @@ def export(
     try:
         # Get database using config path
         with Database(config.database_path) as db:
+            # Determine effective limit: CLI overrides config default
+            if limit is None:
+                limit = config.default_export_limit
             # Query readings
             console.print("[cyan]Querying database...[/cyan]")
             readings = db.query_history(limit=limit)
