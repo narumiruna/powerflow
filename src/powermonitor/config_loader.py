@@ -67,7 +67,13 @@ def load_config() -> PowerMonitorConfig:
             # Merge user config with defaults (user values override defaults)
             for section, values in user_config.items():
                 if section in defaults and isinstance(defaults[section], dict):
-                    defaults[section].update(values)
+                    if isinstance(values, dict):
+                        defaults[section].update(values)
+                    else:
+                        logger.warning(
+                            f"Config section [{section}] in {config_path} must be a table, "
+                            f"but got {type(values).__name__} - ignoring section"
+                        )
                 else:
                     # Log warning for unknown sections but don't fail
                     logger.warning(f"Unknown config section [{section}] in {config_path} - ignoring")
