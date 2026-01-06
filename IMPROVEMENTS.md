@@ -75,145 +75,49 @@ This document outlines recommended improvements for the powermonitor project, or
 - Added input validation for SMC keys (must be 4 characters)
 - Files: `src/powermonitor/collector/iokit/connection.py:28-275`
 
----
+### Phase 4 Completed ✅
 
-## Remaining Issues (Reprioritized)
+**13. Data Export Command** - ✅ Completed (2026-01-06)
+- Added `export` command to CLI with typer
+- Supports CSV and JSON formats
+- Auto-detects format from file extension (.csv, .json)
+- Manual format override with `--format` option
+- `--limit` parameter to restrict number of readings
+- Files: `src/powermonitor/cli.py:99-232`
 
-### Critical Missing Features
+**14. Data Cleanup Command** - ✅ Completed (2026-01-06)
+- Added `cleanup` command with `--days` and `--all` options
+- Requires confirmation for `--all` to prevent accidental data loss
+- Uses SQL DELETE with timestamp filtering for old data
+- Files: `src/powermonitor/cli.py:287-350`
 
-These are essential features that users need but are currently missing:
+**15. History Query Command** - ✅ Completed (2026-01-06)
+- Added `history` command with rich table output
+- Shows time, power, battery %, voltage, current, status
+- Status icons: ⚡ Charging / 🔌 AC Power / 🔋 Battery
+- `--limit` option to control number of readings (default: 20)
+- Files: `src/powermonitor/cli.py:353-412`
 
-### 13. Data Export Command (HIGH PRIORITY)
+**16. Battery Health Tracking Command** - ✅ Completed (2026-01-06)
+- Added `health` command to analyze battery degradation
+- Calculates daily average max_capacity over N days
+- Shows change in mAh and percentage
+- Status indicators: Stable / Degrading (normal) / Degrading (significant)
+- Daily trend table for last 7 days
+- Files: `src/powermonitor/cli.py:415-513`
 
-**Problem**: Users cannot export their collected power data for external analysis.
-
-**Current State**:
-- Data is collected and stored in SQLite
-- No way to access it except through TUI
-- Users want CSV/JSON exports for Excel, Python, etc.
-
-**Recommendation**: Add export subcommand
-
-```bash
-# Export to CSV
-powermonitor export data.csv --limit 1000
-
-# Export to JSON
-powermonitor export data.json --from "2026-01-01" --to "2026-01-06"
-
-# Export all data
-powermonitor export backup.csv
-```
-
-**Implementation**:
-- Add `export` command to CLI with typer
-- Reuse `Database.query_history()` method
-- Support CSV and JSON formats (detect from extension)
-- Add `--limit`, `--from`, `--to` filters
-
-**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
-
----
-
-### 14. Data Cleanup Command (HIGH PRIORITY)
-
-**Problem**: Database grows indefinitely, no automated cleanup mechanism.
-
-**Current State**:
-- Every reading is saved permanently
-- Database can grow to hundreds of MB over time
-- Users have to manually delete the database file
-
-**Recommendation**: Add cleanup/stats commands
-
-```bash
-# Delete readings older than 30 days
-powermonitor cleanup --days 30
-
-# Show database statistics
-powermonitor stats
-# Output:
-#   Total readings: 12,450
-#   Earliest: 2025-12-01 10:30:00
-#   Latest: 2026-01-06 15:22:00
-#   Database size: 2.4 MB
-
-# Clear all history (with confirmation)
-powermonitor cleanup --all
-```
-
-**Implementation**:
-- Add `cleanup` and `stats` commands
-- Add `Database.cleanup_old_data(days)` method
-- Add `Database.get_statistics_full()` method
-- Require confirmation for destructive operations
-
-**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
+**Additional Improvements** - ✅ Completed (2026-01-06)
+- Added `stats` command to show database statistics
+- All commands use rich formatting for professional output
+- Comprehensive error handling for all operations
+- All type checks pass (ty)
+- All linting passes (ruff)
 
 ---
 
-### 15. History Query Command (HIGH PRIORITY)
+## Remaining Issues
 
-**Problem**: Cannot view historical data without launching TUI.
-
-**Current State**:
-- Must launch full TUI to see any data
-- No quick way to check recent readings
-
-**Recommendation**: Add history query command
-
-```bash
-# Show last 20 readings
-powermonitor history --limit 20
-
-# Show readings from specific time range
-powermonitor history --from "2026-01-06 10:00" --to "2026-01-06 12:00"
-
-# Show only charging sessions
-powermonitor history --charging-only
-```
-
-**Implementation**:
-- Add `history` command to CLI
-- Format output as table using rich
-- Add filters: limit, from, to, charging-only
-- Show key metrics: time, watts, battery %, status
-
-**Files**: `src/powermonitor/cli.py`
-
----
-
-### 16. Battery Health Tracking Command (MEDIUM PRIORITY)
-
-**Problem**: No way to track battery degradation over time.
-
-**Current State**:
-- `max_capacity` field is collected but not analyzed
-- Users want to know if battery is degrading
-
-**Recommendation**: Add health tracking command
-
-```bash
-# Show battery health trend (last 30 days)
-powermonitor health --days 30
-# Output:
-#   First avg capacity: 4,709 mAh (2025-12-06)
-#   Last avg capacity: 4,650 mAh (2026-01-06)
-#   Change: -59 mAh (-1.25%)
-#   Status: Degrading (normal wear)
-```
-
-**Implementation**:
-- Add `health` command to CLI
-- Add `Database.get_battery_health_trend(days)` method
-- Calculate daily average max_capacity
-- Show trend (stable/degrading) and percentage change
-
-**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
-
----
-
-## Lower Priority Issues
+### Lower Priority Issues
 
 These are less urgent but still valuable:
 
@@ -509,12 +413,12 @@ def main(interval: float | None = None, ...) -> None:
 11. ✅ Remove redundant pass statements (#11)
 12. ✅ Improve shutdown sequence (#12)
 
-### Phase 4 (Essential Features - DO NEXT) 🎯
-**These are the most valuable features to implement:**
-13. **Data export command** (#13) - 30 min - Users need this
-14. **Data cleanup command** (#14) - 30 min - Database grows indefinitely
-15. **History query command** (#15) - 20 min - Quick data viewing
-16. **Battery health tracking** (#16) - 45 min - Useful insights
+### Phase 4 (Essential Features) ✅ COMPLETED
+13. ✅ Data export command (#13) - Users need this
+14. ✅ Data cleanup command (#14) - Database grows indefinitely
+15. ✅ History query command (#15) - Quick data viewing
+16. ✅ Battery health tracking (#16) - Useful insights
+17. ✅ Database statistics command (bonus)
 
 ### Phase 5 (Lower Priority - Optional)
 8. Add TUI tests (#8) - Requires macOS, 2-3 hours
@@ -541,22 +445,24 @@ def main(interval: float | None = None, ...) -> None:
 
 ---
 
-## Documentation Updates Needed
+## Documentation Updates ✅ COMPLETED
 
-When implementing Phase 4 features:
+Phase 4 documentation has been updated:
 
-1. Update README.md with new CLI commands
-   - Add `powermonitor export` usage examples
-   - Add `powermonitor cleanup` usage examples
-   - Add `powermonitor history` usage examples
-   - Add `powermonitor health` usage examples
+1. ✅ Updated README.md with new CLI commands
+   - Added `powermonitor export` usage examples
+   - Added `powermonitor cleanup` usage examples
+   - Added `powermonitor history` usage examples
+   - Added `powermonitor health` usage examples
+   - Added `powermonitor stats` command
+   - Added TUI configuration options
 
-2. Update CLAUDE.md with:
+2. ✅ Updated CLAUDE.md with:
    - New CLI command descriptions
    - Database cleanup strategies
    - Export format specifications
 
-3. Consider adding:
+3. Future enhancements (optional):
    - User guide for data analysis workflows
    - Examples of using exported CSV data
    - Battery health interpretation guide

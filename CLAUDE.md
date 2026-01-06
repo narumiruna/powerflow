@@ -4,20 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-powermonitor is a macOS power monitoring tool with an auto-updating TUI (Text User Interface). Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization and SQLite-based persistence.
+powermonitor is a macOS power monitoring tool with an auto-updating TUI (Text User Interface) and comprehensive CLI commands. Built with Python 3.13+, it provides real-time battery power monitoring with historical data visualization, data export, and SQLite-based persistence.
 
-**Current Status**: Single-command TUI with auto-updating display, background data collection, and SQLite history tracking.
+**Current Status**: Full-featured CLI tool with:
+- Auto-updating TUI with configurable display
+- Data export (CSV/JSON)
+- Database management (stats, cleanup)
+- History viewing
+- Battery health tracking
 
 ## Essential Commands
 
 ### Running powermonitor
 
 ```bash
-# Launch the auto-updating TUI
+# Launch the auto-updating TUI (default command)
 powermonitor
+
+# Customize TUI settings
+powermonitor --interval 1.0 --stats-limit 100 --chart-limit 60 --debug
 
 # Or using uv:
 uv run powermonitor
+```
+
+### CLI Commands
+
+powermonitor provides comprehensive data management commands:
+
+```bash
+# Export data to CSV or JSON
+powermonitor export data.csv --limit 1000
+powermonitor export data.json
+
+# View database statistics
+powermonitor stats
+
+# View recent readings
+powermonitor history --limit 50
+
+# Clean up old data
+powermonitor cleanup --days 30
+powermonitor cleanup --all  # Requires confirmation
+
+# Analyze battery health
+powermonitor health --days 60
 ```
 
 ### Development
@@ -49,9 +80,11 @@ powermonitor/
 ├── src/
 │   └── powermonitor/
 │       ├── __init__.py
-│       ├── cli.py              # Entry point (launches TUI)
+│       ├── cli.py              # CLI entry point with multiple commands
 │       ├── models.py           # PowerReading dataclass (12 fields)
 │       ├── database.py         # SQLite operations
+│       ├── config.py           # PowerMonitorConfig dataclass
+│       ├── logger.py           # Logging configuration
 │       ├── collector/
 │       │   ├── __init__.py
 │       │   ├── base.py         # PowerCollector protocol
@@ -185,6 +218,45 @@ CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 - `get_statistics(limit=100)`: Calculate avg/min/max stats
 - `clear_history()`: Delete all readings
 
+### CLI Commands
+
+powermonitor provides multiple commands via `typer`:
+
+**Main Command** (`src/powermonitor/cli.py:main`):
+- Launches TUI with configurable options
+- Options: `--interval`, `--stats-limit`, `--chart-limit`, `--debug`
+- Configuration validation via `PowerMonitorConfig`
+
+**Data Export** (`powermonitor export`):
+- Exports readings to CSV or JSON format
+- Auto-detects format from file extension
+- Supports `--limit` and `--format` options
+- Uses `Database.query_history()` and helper functions `_export_csv()`, `_export_json()`
+
+**Database Statistics** (`powermonitor stats`):
+- Shows total readings, date range, database size
+- Uses `Database.get_statistics()` and file system stats
+- Rich table formatting for professional output
+
+**History Viewing** (`powermonitor history`):
+- Displays recent readings in formatted table
+- Shows time, power, battery %, voltage, current, status
+- Status icons: ⚡ Charging / 🔌 AC Power / 🔋 Battery
+- Configurable limit (default: 20)
+
+**Data Cleanup** (`powermonitor cleanup`):
+- Delete readings by age: `--days N`
+- Delete all readings: `--all` (requires confirmation)
+- Direct SQL execution for age-based deletion
+- Uses `Database.clear_history()` for full deletion
+
+**Battery Health** (`powermonitor health`):
+- Analyzes battery degradation over time
+- Calculates daily average `max_capacity`
+- Shows change in mAh and percentage
+- Status indicators: Stable / Degrading (normal) / Degrading (significant)
+- Daily trend table for last 7 days
+
 ### IOKit/SMC FFI Implementation
 
 powermonitor uses **ctypes** for direct macOS IOKit/SMC access:
@@ -258,13 +330,14 @@ uv run ruff format src/
 ```
 
 **Known Issues and Improvements:**
-See `IMPROVEMENTS.md` for a detailed roadmap of:
-- Critical issues (database connection management, error handling)
-- Moderate improvements (configuration, validation, logging)
-- Minor enhancements (tests, cleanup, shutdown handling)
-- Future feature ideas (export, data retention, battery health tracking)
+See `IMPROVEMENTS.md` for a detailed roadmap. Phases 1-4 are complete:
+- ✅ Phase 1: Critical issues (database, error handling)
+- ✅ Phase 2: Configuration and validation
+- ✅ Phase 3: Code quality (IOKit errors, shutdown)
+- ✅ Phase 4: Essential CLI features (export, cleanup, health)
+- Phase 5: Optional (TUI tests, config file)
 
-The improvement roadmap is organized by priority (Phases 1-4) to guide systematic refactoring.
+The improvement roadmap is organized by priority to guide systematic refactoring.
 
 ### Adding New Features
 
