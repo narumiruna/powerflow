@@ -59,19 +59,13 @@ class AdapterDetail:
 class PowerCollectorError(Exception):
     """Base exception for power collection errors."""
 
-    pass
-
 
 class CommandFailedError(PowerCollectorError):
     """ioreg command execution failed."""
 
-    pass
-
 
 class ParseError(PowerCollectorError):
     """Plist/data parsing failed."""
-
-    pass
 
 
 class MissingFieldError(PowerCollectorError):
@@ -84,5 +78,3 @@ class MissingFieldError(PowerCollectorError):
 
 class IOKitError(PowerCollectorError):
     """IOKit/SMC API error."""
-
-    pass
