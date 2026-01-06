@@ -263,7 +263,7 @@ def stats() -> None:
     setup_logger(level=config.log_level)
 
     try:
-        db_path = config.database_path
+        db_path = Path(config.database_path)
 
         # Get database file size
         if db_path.exists():
