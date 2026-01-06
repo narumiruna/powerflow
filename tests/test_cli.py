@@ -176,7 +176,7 @@ def test_stats_command(database, temp_db):
     )
     assert result.exit_code == 0
     assert "Database Statistics" in result.stdout
-    assert "Total readings:" in result.stdout
+    assert "Total readings" in result.stdout
     assert "5" in result.stdout
 
 
@@ -188,7 +188,7 @@ def test_stats_empty_database(database, temp_db):
         env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
-    assert "No readings found" in result.stdout
+    assert "No readings in database" in result.stdout
 
 
 def test_cleanup_with_days(database, temp_db):
@@ -301,7 +301,7 @@ def test_history_empty_database(database, temp_db):
         env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
-    assert "No readings found" in result.stdout
+    assert "No readings in database" in result.stdout
 
 
 def test_health_command(database, temp_db):
