@@ -1,13 +1,23 @@
 """Tests for IOKit/SMC components."""
 
 import struct
+import sys
+from typing import TYPE_CHECKING
 
 import pytest
 
-from powermonitor.collector.iokit.parser import bytes_to_float
-from powermonitor.collector.iokit.structures import key_to_str
-from powermonitor.collector.iokit.structures import str_to_key
-from powermonitor.collector.iokit.structures import type_to_str
+# Skip entire module on non-macOS platforms
+pytestmark = pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IOKit tests require macOS",
+)
+
+# Conditional imports to avoid loading IOKit on non-macOS
+if sys.platform == "darwin" or TYPE_CHECKING:
+    from powermonitor.collector.iokit.parser import bytes_to_float
+    from powermonitor.collector.iokit.structures import key_to_str
+    from powermonitor.collector.iokit.structures import str_to_key
+    from powermonitor.collector.iokit.structures import type_to_str
 
 
 def test_str_to_key():

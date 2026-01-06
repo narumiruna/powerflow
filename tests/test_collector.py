@@ -1,6 +1,7 @@
 """Tests for power collectors."""
 
 import plistlib
+import sys
 from datetime import datetime
 
 import pytest
@@ -212,6 +213,10 @@ def test_ioreg_collector_full_battery():
     assert reading.external_connected is True
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="Collector factory requires macOS",
+)
 def test_collector_factory():
     """Test default_collector factory function."""
     from powermonitor.collector import default_collector
