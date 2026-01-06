@@ -37,7 +37,7 @@ class PowerMonitorConfig:
     collection_interval: float = 1.0  # seconds
     stats_history_limit: int = 100  # number of readings for statistics
     chart_history_limit: int = 60  # number of readings to display in chart
-    database_path: Path | str = None  # Will use factory default if None
+    database_path: Path | str = _get_default_db_path()  # Will use factory default if None
     default_history_limit: int = 20  # default for history command
     default_export_limit: int = 1000  # default for export command
     log_level: str = "INFO"  # logging level (normalized to uppercase)
@@ -56,10 +56,6 @@ class PowerMonitorConfig:
         Raises:
             ValueError: If any configuration value is invalid
         """
-        # Use factory default if database_path is None
-        if self.database_path is None:
-            object.__setattr__(self, "database_path", _get_default_db_path())
-
         # Ensure database_path is a Path object (for string inputs)
         if not isinstance(self.database_path, Path):
             object.__setattr__(self, "database_path", Path(self.database_path))

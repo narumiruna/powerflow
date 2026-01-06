@@ -17,7 +17,7 @@ def get_config_path() -> Path:
     return Path.home() / ".powermonitor" / "config.toml"
 
 
-def load_config() -> PowerMonitorConfig:
+def load_config() -> PowerMonitorConfig:  # noqa: C901
     """Load configuration from TOML file or use defaults.
 
     Priority: Config file > Defaults
