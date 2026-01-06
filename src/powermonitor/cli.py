@@ -60,27 +60,26 @@ def main(
     Configuration priority: CLI arguments > Config file (~/.powermonitor/config.toml) > Defaults
     """
     # Load configuration from file (or use defaults)
-    config = load_config()
+    base_config = load_config()
 
-    # CLI arguments override config values (if provided)
-    if interval is not None:
-        config.collection_interval = interval
-    if stats_limit is not None:
-        config.stats_history_limit = stats_limit
-    if chart_limit is not None:
-        config.chart_history_limit = chart_limit
-    if debug:
-        config.log_level = "DEBUG"
-
-    # Setup logging with config level
-    setup_logger(level=config.log_level)
-
-    # Validate configuration after overrides
+    # Build merged config with CLI overrides
+    # Create new instance to avoid mutating the loaded config
     try:
-        config.__post_init__()
+        config = PowerMonitorConfig(
+            collection_interval=interval if interval is not None else base_config.collection_interval,
+            stats_history_limit=stats_limit if stats_limit is not None else base_config.stats_history_limit,
+            chart_history_limit=chart_limit if chart_limit is not None else base_config.chart_history_limit,
+            database_path=base_config.database_path,
+            default_history_limit=base_config.default_history_limit,
+            default_export_limit=base_config.default_export_limit,
+            log_level="DEBUG" if debug else base_config.log_level,
+        )
     except ValueError as e:
         logger.error(f"Invalid configuration: {e}")
         sys.exit(1)
+
+    # Setup logging with config level
+    setup_logger(level=config.log_level)
 
     # Check platform
     if sys.platform != "darwin":
