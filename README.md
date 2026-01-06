@@ -12,6 +12,7 @@ macOS power monitoring tool with auto-updating TUI for real-time battery and cha
 - 💾 **SQLite persistence** - Automatic background data logging
 - 🎯 **IOKit/SMC access** - Direct macOS API integration via ctypes
 - 🔄 **Auto-fallback** - Graceful fallback to subprocess-based collection
+- ⚙️ **Configuration file** - Optional TOML config with CLI override support
 
 ## Installation
 
@@ -72,6 +73,45 @@ The TUI displays:
 - `q` or `ESC` - Quit application
 - `r` - Force refresh data
 - `c` - Clear history (with confirmation)
+
+### Configuration File
+
+powermonitor supports an optional configuration file at `~/.powermonitor/config.toml`:
+
+```toml
+# powermonitor configuration file
+
+[tui]
+interval = 1.0           # Data collection interval in seconds
+stats_limit = 100        # Number of readings for statistics
+chart_limit = 60         # Number of readings to display in chart
+
+[database]
+path = "~/.powermonitor/powermonitor.db"  # Database file location
+
+[cli]
+default_history_limit = 20           # Default limit for history command
+default_export_limit = 1000          # Default limit for export command
+
+[logging]
+level = "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
+```
+
+**Configuration Priority**: CLI arguments > Config file > Defaults
+
+If no config file exists, powermonitor uses sensible defaults. CLI arguments always override config file values.
+
+**Example**: Set custom database path and collection interval:
+
+```toml
+[database]
+path = "~/Documents/power-data.db"
+
+[tui]
+interval = 2.0
+```
+
+Then run: `powermonitor` (uses config) or `powermonitor --interval 0.5` (overrides config)
 
 ### CLI Commands
 
@@ -221,10 +261,10 @@ All readings automatically saved to SQLite:
 
 **Default location**: `~/.powermonitor/powermonitor.db`
 
-**Custom location** (via environment variable):
-```bash
-export POWERMONITOR_DB_PATH=/path/to/custom.db
-powermonitor
+**Custom location** (via config file):
+```toml
+[database]
+path = "/path/to/custom.db"
 ```
 
 **Schema**:
@@ -257,6 +297,9 @@ powermonitor/
 │       ├── cli.py              # Entry point
 │       ├── models.py           # PowerReading dataclass
 │       ├── database.py         # SQLite operations
+│       ├── config.py           # PowerMonitorConfig dataclass
+│       ├── config_loader.py    # TOML config file loader
+│       ├── logger.py           # Logging configuration
 │       ├── collector/          # Data collection
 │       │   ├── base.py         # PowerCollector protocol
 │       │   ├── ioreg.py        # Subprocess collector

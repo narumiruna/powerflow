@@ -1,6 +1,7 @@
 """Tests for CLI commands."""
 
 import json
+import re
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
@@ -12,6 +13,19 @@ from powermonitor.database import Database
 from powermonitor.models import PowerReading
 
 runner = CliRunner()
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text.
+
+    Args:
+        text: Text with ANSI codes
+
+    Returns:
+        Text without ANSI codes
+    """
+    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+    return ansi_escape.sub("", text)
 
 
 def create_test_readings(database: Database, count: int = 10) -> list[PowerReading]:
@@ -48,7 +62,7 @@ def create_test_readings(database: Database, count: int = 10) -> list[PowerReadi
     return readings
 
 
-def test_export_csv(database, temp_db, tmp_path):
+def test_export_csv(database, temp_config, tmp_path):
     """Test exporting readings to CSV format."""
     # Create test data
     create_test_readings(database, count=5)
@@ -58,11 +72,10 @@ def test_export_csv(database, temp_db, tmp_path):
     result = runner.invoke(
         app,
         ["export", str(output_file), "--limit", "5"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
 
     assert result.exit_code == 0
-    assert "Exported 5 readings" in result.stdout
+    assert "Exported 5 readings" in strip_ansi(result.stdout)
     assert output_file.exists()
 
     # Verify CSV content
@@ -72,7 +85,7 @@ def test_export_csv(database, temp_db, tmp_path):
     assert lines[0].startswith("timestamp,watts_actual,watts_negotiated")
 
 
-def test_export_json(database, temp_db, tmp_path):
+def test_export_json(database, temp_config, tmp_path):
     """Test exporting readings to JSON format."""
     # Create test data
     create_test_readings(database, count=3)
@@ -82,11 +95,10 @@ def test_export_json(database, temp_db, tmp_path):
     result = runner.invoke(
         app,
         ["export", str(output_file), "--limit", "3"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
 
     assert result.exit_code == 0
-    assert "Exported 3 readings" in result.stdout
+    assert "Exported 3 readings" in strip_ansi(result.stdout)
     assert output_file.exists()
 
     # Verify JSON content
@@ -98,7 +110,7 @@ def test_export_json(database, temp_db, tmp_path):
     assert "watts_actual" in data[0]
 
 
-def test_export_auto_detect_format(database, temp_db, tmp_path):
+def test_export_auto_detect_format(database, temp_config, tmp_path):
     """Test export format auto-detection from file extension."""
     # Create test data
     create_test_readings(database, count=2)
@@ -108,7 +120,6 @@ def test_export_auto_detect_format(database, temp_db, tmp_path):
     result = runner.invoke(
         app,
         ["export", str(csv_file)],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert csv_file.exists()
@@ -118,37 +129,34 @@ def test_export_auto_detect_format(database, temp_db, tmp_path):
     result = runner.invoke(
         app,
         ["export", str(json_file)],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert json_file.exists()
 
 
-def test_export_invalid_format(temp_db, tmp_path):
+def test_export_invalid_format(temp_config, tmp_path):
     """Test export with invalid format."""
     output_file = tmp_path / "test.txt"
     result = runner.invoke(
         app,
         ["export", str(output_file)],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 1
     assert "Cannot detect format" in result.stdout
 
 
-def test_export_no_readings(database, temp_db, tmp_path):
+def test_export_no_readings(database, temp_config, tmp_path):
     """Test export with empty database."""
     output_file = tmp_path / "empty.csv"
     result = runner.invoke(
         app,
         ["export", str(output_file)],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "No readings found" in result.stdout
 
 
-def test_export_with_limit(database, temp_db, tmp_path):
+def test_export_with_limit(database, temp_config, tmp_path):
     """Test export with limit parameter."""
     # Create 10 readings
     create_test_readings(database, count=10)
@@ -158,13 +166,12 @@ def test_export_with_limit(database, temp_db, tmp_path):
     result = runner.invoke(
         app,
         ["export", str(output_file), "--limit", "3"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
-    assert "Exported 3 readings" in result.stdout
+    assert "Exported 3 readings" in strip_ansi(result.stdout)
 
 
-def test_stats_command(database, temp_db):
+def test_stats_command(database, temp_config):
     """Test stats command."""
     # Create test data
     create_test_readings(database, count=5)
@@ -172,7 +179,6 @@ def test_stats_command(database, temp_db):
     result = runner.invoke(
         app,
         ["stats"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "Database Statistics" in result.stdout
@@ -180,18 +186,17 @@ def test_stats_command(database, temp_db):
     assert "5" in result.stdout
 
 
-def test_stats_empty_database(database, temp_db):
+def test_stats_empty_database(database, temp_config):
     """Test stats command with empty database."""
     result = runner.invoke(
         app,
         ["stats"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "No readings in database" in result.stdout
 
 
-def test_cleanup_with_days(database, temp_db):
+def test_cleanup_with_days(database, temp_config):
     """Test cleanup command with --days parameter."""
     # Create readings with different timestamps
     base_time = datetime.now(UTC)
@@ -216,17 +221,16 @@ def test_cleanup_with_days(database, temp_db):
     result = runner.invoke(
         app,
         ["cleanup", "--days", "25"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
-    assert "Deleted 2 old readings" in result.stdout
+    assert "Deleted 2 old readings" in strip_ansi(result.stdout)
 
     # Verify remaining readings
     remaining = database.query_history(limit=None)
     assert len(remaining) == 3
 
 
-def test_cleanup_all_with_confirmation(database, temp_db):
+def test_cleanup_all_with_confirmation(database, temp_config):
     """Test cleanup --all with user confirmation."""
     # Create test data
     create_test_readings(database, count=5)
@@ -236,17 +240,16 @@ def test_cleanup_all_with_confirmation(database, temp_db):
         app,
         ["cleanup", "--all"],
         input="y\n",
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
-    assert "Deleted all 5 readings" in result.stdout
+    assert "Deleted all 5 readings" in strip_ansi(result.stdout)
 
     # Verify database is empty
     remaining = database.query_history(limit=None)
     assert len(remaining) == 0
 
 
-def test_cleanup_all_cancelled(database, temp_db):
+def test_cleanup_all_cancelled(database, temp_config):
     """Test cleanup --all when user cancels."""
     # Create test data
     create_test_readings(database, count=3)
@@ -256,7 +259,6 @@ def test_cleanup_all_cancelled(database, temp_db):
         app,
         ["cleanup", "--all"],
         input="n\n",
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "Operation cancelled" in result.stdout
@@ -266,18 +268,17 @@ def test_cleanup_all_cancelled(database, temp_db):
     assert len(remaining) == 3
 
 
-def test_cleanup_missing_parameters(temp_db):
+def test_cleanup_missing_parameters(temp_config):
     """Test cleanup command with missing parameters."""
     result = runner.invoke(
         app,
         ["cleanup"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 1
     assert "Must specify either --days N or --all" in result.stdout
 
 
-def test_history_command(database, temp_db):
+def test_history_command(database, temp_config):
     """Test history command."""
     # Create test data
     create_test_readings(database, count=5)
@@ -285,7 +286,6 @@ def test_history_command(database, temp_db):
     result = runner.invoke(
         app,
         ["history", "--limit", "5"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "Recent Power Readings" in result.stdout
@@ -293,18 +293,17 @@ def test_history_command(database, temp_db):
     assert "Power" in result.stdout
 
 
-def test_history_empty_database(database, temp_db):
+def test_history_empty_database(database, temp_config):
     """Test history command with empty database."""
     result = runner.invoke(
         app,
         ["history"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "No readings in database" in result.stdout
 
 
-def test_health_command(database, temp_db):
+def test_health_command(database, temp_config):
     """Test health command."""
     # Create readings over multiple days
     base_time = datetime.now(UTC)
@@ -329,19 +328,17 @@ def test_health_command(database, temp_db):
     result = runner.invoke(
         app,
         ["health", "--days", "7"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "Battery Health Analysis" in result.stdout
     assert "mAh" in result.stdout
 
 
-def test_health_no_data(database, temp_db):
+def test_health_no_data(database, temp_config):
     """Test health command with no data."""
     result = runner.invoke(
         app,
         ["health", "--days", "7"],
-        env={"POWERMONITOR_DB_PATH": str(temp_db)},
     )
     assert result.exit_code == 0
     assert "No readings found" in result.stdout

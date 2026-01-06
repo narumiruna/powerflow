@@ -12,7 +12,6 @@ from textual.widgets import Header
 
 from ..collector import default_collector
 from ..config import PowerMonitorConfig
-from ..database import DB_PATH
 from ..database import Database
 from ..models import PowerReading
 from .widgets import ChartWidget
@@ -70,7 +69,7 @@ class PowerMonitorApp(App):
         super().__init__(**kwargs)
         self.config = config or PowerMonitorConfig()
         self.collector = default_collector()
-        self.database = Database(DB_PATH)
+        self.database = Database(self.config.database_path)
         self._collector_task: asyncio.Task | None = None
 
     def compose(self) -> ComposeResult:

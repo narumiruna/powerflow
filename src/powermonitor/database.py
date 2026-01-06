@@ -1,6 +1,5 @@
 """SQLite database operations for powermonitor."""
 
-import os
 import sqlite3
 from datetime import UTC
 from datetime import datetime
@@ -13,30 +12,42 @@ from .models import PowerReading
 def get_default_db_path() -> Path:
     """Get default database path.
 
-    Priority:
-    1. POWERMONITOR_DB_PATH environment variable
-    2. ~/.powermonitor/powermonitor.db (default)
-
     Returns:
-        Path to database file
-    """
-    # 1. Environment variable override
-    env_path = os.environ.get("POWERMONITOR_DB_PATH")
-    if env_path:
-        return Path(env_path)
+        Path to ~/.powermonitor/powermonitor.db
 
-    # 2. Default: ~/.powermonitor/powermonitor.db
+    Note:
+        This function is kept for backward compatibility.
+        Prefer using PowerMonitorConfig.database_path in CLI/TUI code.
+    """
     db_dir = Path.home() / ".powermonitor"
     db_dir.mkdir(parents=True, exist_ok=True)
     return db_dir / "powermonitor.db"
 
 
-# Default database path
+# Default database path (for backward compatibility)
+# CLI and TUI should use config.database_path instead
 DB_PATH = get_default_db_path()
 
 
 class Database:
-    """SQLite database manager for power readings."""
+    """SQLite database manager for power readings.
+
+    The Database class manages schema initialization and provides methods for
+    reading/writing power data. Each database operation uses its own connection
+    context manager, so there are no persistent connections to clean up.
+
+    The context manager protocol (__enter__/__exit__) is provided for API
+    consistency with common database patterns, but does not manage resources.
+    You can use it with or without the 'with' statement:
+
+        # With context manager (idiomatic, but functionally identical to without)
+        with Database(path) as db:
+            db.insert_reading(reading)
+
+        # Without context manager (also valid)
+        db = Database(path)
+        db.insert_reading(reading)
+    """
 
     def __init__(self, db_path: Path | str = DB_PATH):
         """Initialize database connection.
@@ -45,7 +56,18 @@ class Database:
             db_path: Path to SQLite database file
         """
         self.db_path = Path(db_path)
+        # Ensure parent directory exists for custom database paths
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
+
+    def __enter__(self):
+        """Enter context manager (no-op, provided for API consistency)."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager (no-op, as each operation manages its own connection)."""
+        # Nothing to clean up as we use context managers for each connection
+        return False
 
     def _init_schema(self) -> None:
         """Create database schema if it doesn't exist.
