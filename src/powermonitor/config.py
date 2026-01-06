@@ -49,10 +49,10 @@ class PowerMonitorConfig:
 
         # Validate log level
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
+        valid_levels_str = ", ".join(sorted(valid_levels))
         if self.log_level.upper() not in valid_levels:
             raise ValueError(
-                f"log_level must be one of {valid_levels}, got {self.log_level}. "
-                "Valid values: DEBUG, INFO, WARNING, ERROR"
+                f"log_level must be one of {valid_levels_str}, got {self.log_level}."
             )
 
         # Normalize log level to uppercase
