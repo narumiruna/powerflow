@@ -151,23 +151,22 @@ def export(
 
     try:
         # Get database using config path
-        db = Database(config.database_path)
+        with Database(config.database_path) as db:
+            # Query readings
+            console.print("[cyan]Querying database...[/cyan]")
+            readings = db.query_history(limit=limit)
 
-        # Query readings
-        console.print("[cyan]Querying database...[/cyan]")
-        readings = db.query_history(limit=limit)
+            if not readings:
+                console.print("[yellow]No readings found in database[/yellow]")
+                sys.exit(0)
 
-        if not readings:
-            console.print("[yellow]No readings found in database[/yellow]")
-            sys.exit(0)
+            # Export based on format
+            if format_type == "csv":
+                _export_csv(output, readings)
+            else:
+                _export_json(output, readings)
 
-        # Export based on format
-        if format_type == "csv":
-            _export_csv(output, readings)
-        else:
-            _export_json(output, readings)
-
-        console.print(f"[green]✓ Exported {len(readings)} readings to {output}[/green]")
+            console.print(f"[green]✓ Exported {len(readings)} readings to {output}[/green]")
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -262,7 +261,6 @@ def stats() -> None:
 
     try:
         db_path = config.database_path
-        db = Database(db_path)
 
         # Get database file size
         if db_path.exists():
@@ -272,25 +270,26 @@ def stats() -> None:
             console.print("[yellow]Database file does not exist yet[/yellow]")
             sys.exit(0)
 
-        # Get statistics
-        stat_data = db.get_statistics(limit=None)  # Get all readings for stats
+        with Database(db_path) as db:
+            # Get statistics
+            stat_data = db.get_statistics(limit=None)  # Get all readings for stats
 
-        if stat_data["count"] == 0:
-            console.print("[yellow]No readings in database[/yellow]")
-            sys.exit(0)
+            if stat_data["count"] == 0:
+                console.print("[yellow]No readings in database[/yellow]")
+                sys.exit(0)
 
-        # Display statistics
-        table = Table(title="Database Statistics", show_header=False)
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="white")
+            # Display statistics
+            table = Table(title="Database Statistics", show_header=False)
+            table.add_column("Metric", style="cyan")
+            table.add_column("Value", style="white")
 
-        table.add_row("Total readings", f"{stat_data['count']:,}")
-        table.add_row("Earliest reading", stat_data["earliest"] or "N/A")
-        table.add_row("Latest reading", stat_data["latest"] or "N/A")
-        table.add_row("Database size", f"{size_mb:.2f} MB")
-        table.add_row("Database path", str(db_path))
+            table.add_row("Total readings", f"{stat_data['count']:,}")
+            table.add_row("Earliest reading", stat_data["earliest"] or "N/A")
+            table.add_row("Latest reading", stat_data["latest"] or "N/A")
+            table.add_row("Database size", f"{size_mb:.2f} MB")
+            table.add_row("Database path", str(db_path))
 
-        console.print(table)
+            console.print(table)
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -327,26 +326,25 @@ def cleanup(
         sys.exit(1)
 
     try:
-        db = Database(config.database_path)
+        with Database(config.database_path) as db:
+            if all_data:
+                # Confirm deletion of all data
+                console.print("[yellow]⚠️  WARNING: This will delete ALL readings![/yellow]")
+                confirm = typer.confirm("Are you sure you want to continue?")
+                if not confirm:
+                    console.print("[cyan]Operation cancelled[/cyan]")
+                    sys.exit(0)
 
-        if all_data:
-            # Confirm deletion of all data
-            console.print("[yellow]⚠️  WARNING: This will delete ALL readings![/yellow]")
-            confirm = typer.confirm("Are you sure you want to continue?")
-            if not confirm:
-                console.print("[cyan]Operation cancelled[/cyan]")
-                sys.exit(0)
+                deleted = db.clear_history()
+                console.print(f"[green]✓ Deleted all {deleted} readings[/green]")
 
-            deleted = db.clear_history()
-            console.print(f"[green]✓ Deleted all {deleted} readings[/green]")
+            else:
+                # Delete old data
+                assert days is not None, "days must be specified"  # Type checker hint
+                console.print(f"[cyan]Deleting readings older than {days} days...[/cyan]")
 
-        else:
-            # Delete old data
-            assert days is not None, "days must be specified"  # Type checker hint
-            console.print(f"[cyan]Deleting readings older than {days} days...[/cyan]")
-
-            deleted = db.cleanup_old_data(days=days)
-            console.print(f"[green]✓ Deleted {deleted} old readings[/green]")
+                deleted = db.cleanup_old_data(days=days)
+                console.print(f"[green]✓ Deleted {deleted} old readings[/green]")
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -378,45 +376,45 @@ def history(
         limit = config.default_history_limit
 
     try:
-        db = Database(config.database_path)
-        readings = db.query_history(limit=limit)
+        with Database(config.database_path) as db:
+            readings = db.query_history(limit=limit)
 
-        if not readings:
-            console.print("[yellow]No readings in database[/yellow]")
-            sys.exit(0)
+            if not readings:
+                console.print("[yellow]No readings in database[/yellow]")
+                sys.exit(0)
 
-        # Create table
-        table = Table(title=f"Recent Power Readings (Last {len(readings)})")
-        table.add_column("Time", style="cyan")
-        table.add_column("Power", style="green", justify="right")
-        table.add_column("Battery", style="yellow", justify="right")
-        table.add_column("Voltage", style="blue", justify="right")
-        table.add_column("Current", style="magenta", justify="right")
-        table.add_column("Status", style="white")
+            # Create table
+            table = Table(title=f"Recent Power Readings (Last {len(readings)})")
+            table.add_column("Time", style="cyan")
+            table.add_column("Power", style="green", justify="right")
+            table.add_column("Battery", style="yellow", justify="right")
+            table.add_column("Voltage", style="blue", justify="right")
+            table.add_column("Current", style="magenta", justify="right")
+            table.add_column("Status", style="white")
 
-        # Reverse to show oldest first
-        for r in reversed(readings):
-            # Format status
-            if r.is_charging:
-                status = "⚡ Charging"
-            elif r.external_connected:
-                status = "🔌 AC Power"
-            else:
-                status = "🔋 Battery"
+            # Reverse to show oldest first
+            for r in reversed(readings):
+                # Format status
+                if r.is_charging:
+                    status = "⚡ Charging"
+                elif r.external_connected:
+                    status = "🔌 AC Power"
+                else:
+                    status = "🔋 Battery"
 
-            # Format time (show only time if today, otherwise date + time)
-            time_str = r.timestamp.strftime("%H:%M:%S")
+                # Format time (show only time if today, otherwise date + time)
+                time_str = r.timestamp.strftime("%H:%M:%S")
 
-            table.add_row(
-                time_str,
-                f"{r.watts_actual:+.1f}W",
-                f"{r.battery_percent}%",
-                f"{r.voltage:.1f}V",
-                f"{r.amperage:+.2f}A",
-                status,
-            )
+                table.add_row(
+                    time_str,
+                    f"{r.watts_actual:+.1f}W",
+                    f"{r.battery_percent}%",
+                    f"{r.voltage:.1f}V",
+                    f"{r.amperage:+.2f}A",
+                    status,
+                )
 
-        console.print(table)
+            console.print(table)
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -446,58 +444,58 @@ def health(
     setup_logger(level=config.log_level)
 
     try:
-        db = Database(config.database_path)
-        results = db.get_battery_health_trend(days=days)
+        with Database(config.database_path) as db:
+            results = db.get_battery_health_trend(days=days)
 
-        if not results:
-            console.print(f"[yellow]No readings found in the last {days} days[/yellow]")
-            sys.exit(0)
+            if not results:
+                console.print(f"[yellow]No readings found in the last {days} days[/yellow]")
+                sys.exit(0)
 
-        # Calculate trend
-        first_capacity = results[0][1]
-        last_capacity = results[-1][1]
-        change_mah = last_capacity - first_capacity
-        change_percent = (change_mah / first_capacity) * 100
+            # Calculate trend
+            first_capacity = results[0][1]
+            last_capacity = results[-1][1]
+            change_mah = last_capacity - first_capacity
+            change_percent = (change_mah / first_capacity) * 100
 
-        # Determine status
-        if change_percent < -2:
-            status = "[red]⚠️  Degrading (significant)[/red]"
-        elif change_percent < -0.5:
-            status = "[yellow]⚠️  Degrading (normal wear)[/yellow]"
-        else:
-            status = "[green]✓ Stable[/green]"
+            # Determine status
+            if change_percent < -2:
+                status = "[red]⚠️  Degrading (significant)[/red]"
+            elif change_percent < -0.5:
+                status = "[yellow]⚠️  Degrading (normal wear)[/yellow]"
+            else:
+                status = "[green]✓ Stable[/green]"
 
-        # Display summary
-        console.print(f"\n[bold]Battery Health Analysis ({days} days)[/bold]\n")
+            # Display summary
+            console.print(f"\n[bold]Battery Health Analysis ({days} days)[/bold]\n")
 
-        summary_table = Table(show_header=False, box=None)
-        summary_table.add_column("Metric", style="cyan")
-        summary_table.add_column("Value", style="white")
+            summary_table = Table(show_header=False, box=None)
+            summary_table.add_column("Metric", style="cyan")
+            summary_table.add_column("Value", style="white")
 
-        summary_table.add_row("First reading", results[0][0])
-        summary_table.add_row("First avg capacity", f"{first_capacity:.0f} mAh")
-        summary_table.add_row("Last reading", results[-1][0])
-        summary_table.add_row("Last avg capacity", f"{last_capacity:.0f} mAh")
-        summary_table.add_row("Change", f"{change_mah:+.0f} mAh ({change_percent:+.2f}%)")
-        summary_table.add_row("Status", status)
-        summary_table.add_row("Days analyzed", str(len(results)))
+            summary_table.add_row("First reading", results[0][0])
+            summary_table.add_row("First avg capacity", f"{first_capacity:.0f} mAh")
+            summary_table.add_row("Last reading", results[-1][0])
+            summary_table.add_row("Last avg capacity", f"{last_capacity:.0f} mAh")
+            summary_table.add_row("Change", f"{change_mah:+.0f} mAh ({change_percent:+.2f}%)")
+            summary_table.add_row("Status", status)
+            summary_table.add_row("Days analyzed", str(len(results)))
 
-        console.print(summary_table)
+            console.print(summary_table)
 
-        # Show daily trend if more than 3 data points
-        if len(results) > 3:
-            console.print(f"\n[bold]Daily Trend (Last {min(7, len(results))} days)[/bold]\n")
+            # Show daily trend if more than 3 data points
+            if len(results) > 3:
+                console.print(f"\n[bold]Daily Trend (Last {min(7, len(results))} days)[/bold]\n")
 
-            trend_table = Table()
-            trend_table.add_column("Date", style="cyan")
-            trend_table.add_column("Avg Capacity", style="green", justify="right")
-            trend_table.add_column("Readings", style="yellow", justify="right")
+                trend_table = Table()
+                trend_table.add_column("Date", style="cyan")
+                trend_table.add_column("Avg Capacity", style="green", justify="right")
+                trend_table.add_column("Readings", style="yellow", justify="right")
 
-            # Show last 7 days
-            for row in results[-7:]:
-                trend_table.add_row(row[0], f"{row[1]:.0f} mAh", str(row[2]))
+                # Show last 7 days
+                for row in results[-7:]:
+                    trend_table.add_row(row[0], f"{row[1]:.0f} mAh", str(row[2]))
 
-            console.print(trend_table)
+                console.print(trend_table)
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")

@@ -30,7 +30,12 @@ DB_PATH = get_default_db_path()
 
 
 class Database:
-    """SQLite database manager for power readings."""
+    """SQLite database manager for power readings.
+
+    Can be used as a context manager for proper resource cleanup:
+        with Database(path) as db:
+            db.insert_reading(reading)
+    """
 
     def __init__(self, db_path: Path | str = DB_PATH):
         """Initialize database connection.
@@ -40,6 +45,15 @@ class Database:
         """
         self.db_path = Path(db_path)
         self._init_schema()
+
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager - cleanup if needed."""
+        # Nothing to clean up as we use context managers for each connection
+        return False
 
     def _init_schema(self) -> None:
         """Create database schema if it doesn't exist.

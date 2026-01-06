@@ -66,6 +66,13 @@ addopts = [
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+  # Ignore sqlite3 ResourceWarnings - these are harmless warnings from Python 3.13
+  # when sqlite3.Connection objects are garbage collected. We use context managers
+  # properly but Python's typing introspection can trigger these warnings.
+  "ignore::ResourceWarning",
+  "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.bumpversion]
 current_version = "0.0.4"
