@@ -306,6 +306,8 @@ class Database:
             List of tuples: (date, avg_max_capacity, reading_count)
             Ordered by date ascending
         """
+        if days <= 0:
+            raise ValueError("days must be a positive integer")
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
         with sqlite3.connect(self.db_path) as conn:
