@@ -142,49 +142,29 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
+            # Build query dynamically based on whether limit is specified
+            query = """
+                SELECT
+                    timestamp,
+                    watts_actual,
+                    watts_negotiated,
+                    voltage,
+                    amperage,
+                    current_capacity,
+                    max_capacity,
+                    battery_percent,
+                    is_charging,
+                    external_connected,
+                    charger_name,
+                    charger_manufacturer
+                FROM power_readings
+                ORDER BY timestamp DESC
+            """
+
             if limit is None:
-                # Query all readings without LIMIT clause
-                cursor.execute(
-                    """
-                    SELECT
-                        timestamp,
-                        watts_actual,
-                        watts_negotiated,
-                        voltage,
-                        amperage,
-                        current_capacity,
-                        max_capacity,
-                        battery_percent,
-                        is_charging,
-                        external_connected,
-                        charger_name,
-                        charger_manufacturer
-                    FROM power_readings
-                    ORDER BY timestamp DESC
-                    """
-                )
+                cursor.execute(query)
             else:
-                cursor.execute(
-                    """
-                    SELECT
-                        timestamp,
-                        watts_actual,
-                        watts_negotiated,
-                        voltage,
-                        amperage,
-                        current_capacity,
-                        max_capacity,
-                        battery_percent,
-                        is_charging,
-                        external_connected,
-                        charger_name,
-                        charger_manufacturer
-                    FROM power_readings
-                    ORDER BY timestamp DESC
-                    LIMIT ?
-                    """,
-                    (limit,),
-                )
+                cursor.execute(query + " LIMIT ?", (limit,))
 
             rows = cursor.fetchall()
 
@@ -222,10 +202,10 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
+            # Build query dynamically based on whether limit is specified
             if limit is None:
                 # Calculate statistics over all readings
-                cursor.execute(
-                    """
+                query = """
                     SELECT
                         AVG(watts_actual) as avg_watts,
                         MIN(watts_actual) as min_watts,
@@ -235,11 +215,11 @@ class Database:
                         MAX(timestamp) as latest,
                         COUNT(*) as count
                     FROM power_readings
-                    """
-                )
+                """
+                cursor.execute(query)
             else:
-                cursor.execute(
-                    """
+                # Calculate statistics over the most recent N readings
+                query = """
                     SELECT
                         AVG(watts_actual) as avg_watts,
                         MIN(watts_actual) as min_watts,
@@ -254,9 +234,8 @@ class Database:
                         ORDER BY timestamp DESC
                         LIMIT ?
                     )
-                    """,
-                    (limit,),
-                )
+                """
+                cursor.execute(query, (limit,))
 
             row = cursor.fetchone()
 
