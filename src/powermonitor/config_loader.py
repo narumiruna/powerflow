@@ -39,22 +39,23 @@ def load_config() -> PowerMonitorConfig:  # noqa: C901
     """
     config_path = get_config_path()
 
-    # Default values (matching PowerMonitorConfig defaults)
+    # Get default values from PowerMonitorConfig (single source of truth)
+    default_config = PowerMonitorConfig()
     defaults = {
         "tui": {
-            "interval": 1.0,
-            "stats_limit": 100,
-            "chart_limit": 60,
+            "interval": default_config.collection_interval,
+            "stats_limit": default_config.stats_history_limit,
+            "chart_limit": default_config.chart_history_limit,
         },
         "database": {
-            "path": "~/.powermonitor/powermonitor.db",
+            "path": str(default_config.database_path),
         },
         "cli": {
-            "default_history_limit": 20,
-            "default_export_limit": 1000,
+            "default_history_limit": default_config.default_history_limit,
+            "default_export_limit": default_config.default_export_limit,
         },
         "logging": {
-            "level": "INFO",
+            "level": default_config.log_level,
         },
     }
 
