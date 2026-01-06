@@ -2,11 +2,7 @@
 
 import csv
 import json
-import sqlite3
 import sys
-from datetime import UTC
-from datetime import datetime
-from datetime import timedelta
 from pathlib import Path
 from typing import Annotated
 

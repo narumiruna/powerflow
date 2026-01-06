@@ -4,15 +4,12 @@ import json
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
-from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from powermonitor.cli import app
 from powermonitor.database import Database
 from powermonitor.models import PowerReading
-
 
 runner = CliRunner()
 
