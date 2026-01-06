@@ -95,25 +95,19 @@ def load_config() -> PowerMonitorConfig:
         try:
             collection_interval = float(collection_interval)
         except (TypeError, ValueError):
-            raise ValueError(
-                f"Invalid 'tui.interval' value {collection_interval!r}; expected a number"
-            )
+            raise ValueError(f"Invalid 'tui.interval' value {collection_interval!r}; expected a number") from None
 
         stats_history_limit = defaults["tui"]["stats_limit"]
         try:
             stats_history_limit = int(stats_history_limit)
         except (TypeError, ValueError):
-            raise ValueError(
-                f"Invalid 'tui.stats_limit' value {stats_history_limit!r}; expected an integer"
-            )
+            raise ValueError(f"Invalid 'tui.stats_limit' value {stats_history_limit!r}; expected an integer") from None
 
         chart_history_limit = defaults["tui"]["chart_limit"]
         try:
             chart_history_limit = int(chart_history_limit)
         except (TypeError, ValueError):
-            raise ValueError(
-                f"Invalid 'tui.chart_limit' value {chart_history_limit!r}; expected an integer"
-            )
+            raise ValueError(f"Invalid 'tui.chart_limit' value {chart_history_limit!r}; expected an integer") from None
 
         default_history_limit = defaults["cli"]["default_history_limit"]
         try:
@@ -121,7 +115,7 @@ def load_config() -> PowerMonitorConfig:
         except (TypeError, ValueError):
             raise ValueError(
                 f"Invalid 'cli.default_history_limit' value {default_history_limit!r}; expected an integer"
-            )
+            ) from None
 
         default_export_limit = defaults["cli"]["default_export_limit"]
         try:
@@ -129,14 +123,12 @@ def load_config() -> PowerMonitorConfig:
         except (TypeError, ValueError):
             raise ValueError(
                 f"Invalid 'cli.default_export_limit' value {default_export_limit!r}; expected an integer"
-            )
+            ) from None
 
         log_level = defaults["logging"]["level"]
         # Ensure log_level is a string; avoid surprising conversions of non-string types
         if not isinstance(log_level, str):
-            raise ValueError(
-                f"Invalid 'logging.level' value {log_level!r}; expected a string"
-            )
+            raise ValueError(f"Invalid 'logging.level' value {log_level!r}; expected a string")
 
         # Create PowerMonitorConfig instance (validation happens in __post_init__)
         # Type assertions help type checker understand these are the correct types

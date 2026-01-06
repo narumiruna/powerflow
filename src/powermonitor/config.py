@@ -6,9 +6,9 @@ from pathlib import Path
 
 def _get_default_db_path() -> Path:
     """Get default database path.
-    
+
     This is a factory function to avoid evaluating Path.home() at module import time.
-    
+
     Returns:
         Path to default database location
     """
@@ -27,7 +27,7 @@ class PowerMonitorConfig:
         default_history_limit: Default number of readings for history command (must be > 0)
         default_export_limit: Default number of readings for export command (must be > 0)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR) - stored in uppercase
-    
+
     Notes:
         - log_level is automatically normalized to uppercase in __post_init__
         - database_path is converted to Path object if needed in __post_init__
@@ -42,12 +42,12 @@ class PowerMonitorConfig:
     default_export_limit: int = 1000  # default for export command
     log_level: str = "INFO"  # logging level (normalized to uppercase)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None:  # noqa: C901
         """Validate and normalize configuration values after initialization.
-        
+
         This method performs necessary normalization (log_level uppercase, database_path
         conversion) using object.__setattr__() to work with slots=True dataclasses.
-        
+
         Normalization is done here rather than before instance creation because:
         1. It allows users to pass lowercase log levels (more user-friendly)
         2. It allows passing string paths that get converted to Path objects
@@ -58,16 +58,16 @@ class PowerMonitorConfig:
         """
         # Use factory default if database_path is None
         if self.database_path is None:
-            object.__setattr__(self, 'database_path', _get_default_db_path())
-        
+            object.__setattr__(self, "database_path", _get_default_db_path())
+
         # Ensure database_path is a Path object (for string inputs)
         if not isinstance(self.database_path, Path):
-            object.__setattr__(self, 'database_path', Path(self.database_path))
-        
+            object.__setattr__(self, "database_path", Path(self.database_path))
+
         # Normalize log_level to uppercase (required for validation)
         if isinstance(self.log_level, str):
-            object.__setattr__(self, 'log_level', self.log_level.upper())
-        
+            object.__setattr__(self, "log_level", self.log_level.upper())
+
         # Validate numeric parameters
         if self.collection_interval <= 0:
             raise ValueError(f"collection_interval must be positive, got {self.collection_interval}")
@@ -88,9 +88,7 @@ class PowerMonitorConfig:
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
         valid_levels_str = ", ".join(sorted(valid_levels))
         if self.log_level not in valid_levels:
-            raise ValueError(
-                f"log_level must be one of {valid_levels_str}, got {self.log_level}."
-            )
+            raise ValueError(f"log_level must be one of {valid_levels_str}, got {self.log_level}.")
 
         # Warn about very short intervals (performance concerns)
         if self.collection_interval < 0.1:

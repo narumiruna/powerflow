@@ -11,6 +11,7 @@ from loguru import logger
 from rich.console import Console
 from rich.table import Table
 
+from .config import PowerMonitorConfig
 from .config_loader import load_config
 from .database import Database
 from .logger import setup_logger
