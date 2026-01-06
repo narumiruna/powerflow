@@ -2,7 +2,9 @@
 
 import os
 import sqlite3
+from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 
 from .models import PowerReading
@@ -130,11 +132,11 @@ class Database:
             assert row_id is not None, "Failed to insert reading"
             return row_id
 
-    def query_history(self, limit: int = 20) -> list[PowerReading]:
+    def query_history(self, limit: int | None = 20) -> list[PowerReading]:
         """Query most recent power readings.
 
         Args:
-            limit: Maximum number of readings to return
+            limit: Maximum number of readings to return. None = all readings.
 
         Returns:
             List of PowerReading objects, ordered by timestamp DESC
@@ -142,8 +144,8 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                """
+            # Build query dynamically based on whether limit is specified
+            query = """
                 SELECT
                     timestamp,
                     watts_actual,
@@ -159,10 +161,12 @@ class Database:
                     charger_manufacturer
                 FROM power_readings
                 ORDER BY timestamp DESC
-                LIMIT ?
-                """,
-                (limit,),
-            )
+            """
+
+            if limit is None:
+                cursor.execute(query)
+            else:
+                cursor.execute(query + " LIMIT ?", (limit,))
 
             rows = cursor.fetchall()
 
@@ -188,11 +192,11 @@ class Database:
 
         return readings
 
-    def get_statistics(self, limit: int = 100) -> dict:
+    def get_statistics(self, limit: int | None = 100) -> dict:
         """Calculate statistics from recent readings.
 
         Args:
-            limit: Number of recent readings to include in statistics
+            limit: Number of recent readings to include in statistics. None = all readings.
 
         Returns:
             Dictionary with avg, min, max power and battery stats
@@ -200,25 +204,40 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                """
-                SELECT
-                    AVG(watts_actual) as avg_watts,
-                    MIN(watts_actual) as min_watts,
-                    MAX(watts_actual) as max_watts,
-                    AVG(battery_percent) as avg_battery,
-                    MIN(timestamp) as earliest,
-                    MAX(timestamp) as latest,
-                    COUNT(*) as count
-                FROM (
-                    SELECT watts_actual, battery_percent, timestamp
+            # Build query dynamically based on whether limit is specified
+            if limit is None:
+                # Calculate statistics over all readings
+                query = """
+                    SELECT
+                        AVG(watts_actual) as avg_watts,
+                        MIN(watts_actual) as min_watts,
+                        MAX(watts_actual) as max_watts,
+                        AVG(battery_percent) as avg_battery,
+                        MIN(timestamp) as earliest,
+                        MAX(timestamp) as latest,
+                        COUNT(*) as count
                     FROM power_readings
-                    ORDER BY timestamp DESC
-                    LIMIT ?
-                )
-                """,
-                (limit,),
-            )
+                """
+                cursor.execute(query)
+            else:
+                # Calculate statistics over the most recent N readings
+                query = """
+                    SELECT
+                        AVG(watts_actual) as avg_watts,
+                        MIN(watts_actual) as min_watts,
+                        MAX(watts_actual) as max_watts,
+                        AVG(battery_percent) as avg_battery,
+                        MIN(timestamp) as earliest,
+                        MAX(timestamp) as latest,
+                        COUNT(*) as count
+                    FROM (
+                        SELECT watts_actual, battery_percent, timestamp
+                        FROM power_readings
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    )
+                """
+                cursor.execute(query, (limit,))
 
             row = cursor.fetchone()
 
@@ -257,6 +276,58 @@ class Database:
             # Commit is automatic with context manager
 
             return rows_deleted
+
+    def cleanup_old_data(self, days: int) -> int:
+        """Delete power readings older than specified number of days.
+
+        Args:
+            days: Number of days - readings older than this will be deleted
+
+        Returns:
+            Number of rows deleted
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM power_readings WHERE timestamp < ?", (cutoff.isoformat(),))
+            rows_deleted = cursor.rowcount
+            # Commit is automatic with context manager
+
+            return rows_deleted
+
+    def get_battery_health_trend(self, days: int = 30) -> list[tuple[str, float, int]]:
+        """Get daily average battery health (max_capacity) over specified period.
+
+        Args:
+            days: Number of days to analyze (default: 30)
+
+        Returns:
+            List of tuples: (date, avg_max_capacity, reading_count)
+            Ordered by date ascending
+        """
+        if days <= 0:
+            raise ValueError("days must be a positive integer")
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT
+                    DATE(timestamp) as date,
+                    AVG(max_capacity) as avg_max_capacity,
+                    COUNT(*) as reading_count
+                FROM power_readings
+                WHERE timestamp >= ?
+                GROUP BY DATE(timestamp)
+                ORDER BY date ASC
+                """,
+                (cutoff.isoformat(),),
+            )
+
+            return cursor.fetchall()
 
 
 # Module-level convenience functions
@@ -297,11 +368,11 @@ def insert_reading(reading: PowerReading, db_path: Path | str = DB_PATH) -> int:
     return get_database(db_path).insert_reading(reading)
 
 
-def query_history(limit: int = 20, db_path: Path | str = DB_PATH) -> list[PowerReading]:
+def query_history(limit: int | None = 20, db_path: Path | str = DB_PATH) -> list[PowerReading]:
     """Convenience function to query history using default database.
 
     Args:
-        limit: Maximum number of readings
+        limit: Maximum number of readings. None = all readings.
         db_path: Path to database file
 
     Returns:
@@ -310,11 +381,11 @@ def query_history(limit: int = 20, db_path: Path | str = DB_PATH) -> list[PowerR
     return get_database(db_path).query_history(limit)
 
 
-def get_statistics(limit: int = 100, db_path: Path | str = DB_PATH) -> dict:
+def get_statistics(limit: int | None = 100, db_path: Path | str = DB_PATH) -> dict:
     """Convenience function to get statistics using default database.
 
     Args:
-        limit: Number of recent readings to include
+        limit: Number of recent readings to include. None = all readings.
         db_path: Path to database file
 
     Returns:

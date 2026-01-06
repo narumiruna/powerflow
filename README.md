@@ -32,9 +32,21 @@ pipx install powermonitor
 ### Launch the TUI
 
 ```bash
-# Single command launches auto-updating TUI
+# Launch auto-updating TUI with default settings
 powermonitor
+
+# Customize TUI settings
+powermonitor --interval 1.0 --stats-limit 100 --chart-limit 60
+
+# Enable debug logging
+powermonitor --debug
 ```
+
+**TUI Options:**
+- `--interval` / `-i` - Data collection interval in seconds (default: 1.0)
+- `--stats-limit` - Number of readings for statistics (default: 100)
+- `--chart-limit` - Number of readings in chart (default: 60)
+- `--debug` - Enable debug logging
 
 The TUI displays:
 
@@ -56,11 +68,100 @@ The TUI displays:
 └───────────────────────────────────────────┘
 ```
 
-### Keyboard Controls
-
+**Keyboard Controls:**
 - `q` or `ESC` - Quit application
 - `r` - Force refresh data
 - `c` - Clear history (with confirmation)
+
+### CLI Commands
+
+#### Export Data
+
+Export power readings to CSV or JSON format:
+
+```bash
+# Export to CSV (auto-detected from extension)
+powermonitor export data.csv
+
+# Export to JSON
+powermonitor export data.json
+
+# Export last 1000 readings
+powermonitor export data.csv --limit 1000
+
+# Manually specify format
+powermonitor export backup.txt --format csv
+```
+
+#### Database Statistics
+
+Show database information and statistics:
+
+```bash
+powermonitor stats
+```
+
+Output:
+```
+Database Statistics
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total readings       12,450
+Earliest reading     2025-12-01 10:30:00
+Latest reading       2026-01-06 15:22:00
+Database size        2.4 MB
+Database path        /Users/you/.powermonitor/powermonitor.db
+```
+
+#### View History
+
+Display recent power readings in a formatted table:
+
+```bash
+# Show last 20 readings (default)
+powermonitor history
+
+# Show last 50 readings
+powermonitor history --limit 50
+```
+
+Output shows time, power, battery %, voltage, current, and status.
+
+#### Clean Up Data
+
+Remove old readings to manage database size:
+
+```bash
+# Delete readings older than 30 days
+powermonitor cleanup --days 30
+
+# Delete all readings (requires confirmation)
+powermonitor cleanup --all
+```
+
+#### Battery Health
+
+Track battery degradation over time:
+
+```bash
+# Analyze last 30 days (default)
+powermonitor health
+
+# Analyze last 60 days
+powermonitor health --days 60
+```
+
+Output:
+```
+Battery Health Analysis (30 days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+First reading        2025-12-06
+First avg capacity   4,709 mAh
+Last reading         2026-01-06
+Last avg capacity    4,650 mAh
+Change               -59 mAh (-1.25%)
+Status               ⚠️  Degrading (normal wear)
+Days analyzed        30
+```
 
 ### Development Mode
 
