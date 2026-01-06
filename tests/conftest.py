@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from powermonitor import config_loader
 from powermonitor.database import Database
 from powermonitor.models import PowerReading
 
@@ -111,8 +112,7 @@ level = "INFO"
         config_path = f.name
 
     # Monkeypatch get_config_path to return temp config
-    from powermonitor import config_loader
-
+    # Note: config_loader is imported at module level to make dependency explicit
     monkeypatch.setattr(config_loader, "get_config_path", lambda: Path(config_path))
 
     yield config_path
