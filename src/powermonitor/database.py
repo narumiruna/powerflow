@@ -1,6 +1,5 @@
 """SQLite database operations for powermonitor."""
 
-import os
 import sqlite3
 from datetime import UTC
 from datetime import datetime
@@ -13,25 +12,20 @@ from .models import PowerReading
 def get_default_db_path() -> Path:
     """Get default database path.
 
-    Priority:
-    1. POWERMONITOR_DB_PATH environment variable
-    2. ~/.powermonitor/powermonitor.db (default)
-
     Returns:
-        Path to database file
-    """
-    # 1. Environment variable override
-    env_path = os.environ.get("POWERMONITOR_DB_PATH")
-    if env_path:
-        return Path(env_path)
+        Path to ~/.powermonitor/powermonitor.db
 
-    # 2. Default: ~/.powermonitor/powermonitor.db
+    Note:
+        This function is kept for backward compatibility.
+        Prefer using PowerMonitorConfig.database_path in CLI/TUI code.
+    """
     db_dir = Path.home() / ".powermonitor"
     db_dir.mkdir(parents=True, exist_ok=True)
     return db_dir / "powermonitor.db"
 
 
-# Default database path
+# Default database path (for backward compatibility)
+# CLI and TUI should use config.database_path instead
 DB_PATH = get_default_db_path()
 
 

@@ -253,145 +253,60 @@ async def test_app_refresh_action():
 
 ---
 
-### 10. Configuration File Support (LOW PRIORITY - MAYBE NOT NEEDED)
+### 10. Configuration File Support - ✅ COMPLETED (2026-01-06)
 
-**Problem**: Currently requires CLI arguments for configuration.
+**Status**: Implemented TOML configuration file support at `~/.powermonitor/config.toml`
 
-**Current State**:
-- CLI has `--interval`, `--stats-limit`, `--chart-limit`, `--debug` options
-- Options work well for most use cases
-- Environment variable `POWERMONITOR_DB_PATH` for database location
+**Implementation**:
+- Created `config_loader.py` module with `load_config()` function
+- Extended `PowerMonitorConfig` dataclass with new fields:
+  - `database_path: Path` - Database file location
+  - `default_history_limit: int = 20` - For history command
+  - `default_export_limit: int = 1000` - For export command
+  - `log_level: str = "INFO"` - Logging level
+- Configuration priority: **CLI arguments > Config file > Defaults**
+- Removed `POWERMONITOR_DB_PATH` environment variable support
+- All CLI commands now use config for database path and defaults
+- TUI uses config for database path and collection settings
 
-**Consideration**: Config file might be over-engineering
-- Most users run with defaults
-- CLI options are sufficient for customization
-- Adds complexity (file parsing, precedence rules, etc.)
-- Consider only if users request it
+**Breaking Changes**:
+- `POWERMONITOR_DB_PATH` environment variable no longer supported
+- Users should use `[database]` section in config file instead
 
-**Recommendation** (if needed): Add TOML configuration file support.
-
-**File**: `~/.powermonitor/config.toml` (user config)
+**Config File Format** (`~/.powermonitor/config.toml`):
 ```toml
+# powermonitor configuration file
+
+[tui]
+interval = 1.0           # Data collection interval in seconds
+stats_limit = 100        # Number of readings for statistics
+chart_limit = 60         # Number of readings to display in chart
+
 [database]
-path = "~/.powermonitor/powermonitor.db"
+path = "~/.powermonitor/powermonitor.db"  # Database file location
 
-[collection]
-interval = 1.0  # seconds
-auto_start = true
-
-[display]
-chart_history = 60
-stats_limit = 100
-theme = "dark"
+[cli]
+default_history_limit = 20           # Default limit for history command
+default_export_limit = 1000          # Default limit for export command
 
 [logging]
-level = "INFO"
-file = "~/.powermonitor/powermonitor.log"
+level = "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
 ```
 
-**Implementation**: Add config module
+**Future Enhancements** (Not yet implemented):
+- `powermonitor config show` - Display current effective configuration (CLI args + config file + defaults)
+- `powermonitor config init` - Generate default config.toml file with comments
+- `powermonitor config validate` - Check config file syntax and values without running app
+- `powermonitor config edit` - Open config file in $EDITOR
+- Dynamic config reload in TUI - Watch config file for changes and reload without restart
+- Multiple config profiles - Support different configs for different scenarios (e.g., `--profile work`)
 
-**File**: `src/powermonitor/config.py` (new file)
-```python
-"""Configuration management for powermonitor."""
-
-from pathlib import Path
-from typing import Any
-import tomllib
-
-DEFAULT_CONFIG = {
-    "database": {
-        "path": "~/.powermonitor/powermonitor.db",
-    },
-    "collection": {
-        "interval": 1.0,
-    },
-    "display": {
-        "chart_history": 60,
-        "stats_limit": 100,
-    },
-    "logging": {
-        "level": "INFO",
-    },
-}
-
-
-def get_config_path() -> Path:
-    """Get path to user configuration file."""
-    return Path.home() / ".powermonitor" / "config.toml"
-
-
-def load_config() -> dict[str, Any]:
-    """Load configuration from file or use defaults.
-
-    Returns:
-        Configuration dictionary
-    """
-    config_path = get_config_path()
-
-    if not config_path.exists():
-        return DEFAULT_CONFIG.copy()
-
-    try:
-        with open(config_path, "rb") as f:
-            user_config = tomllib.load(f)
-
-        # Merge with defaults
-        config = DEFAULT_CONFIG.copy()
-        for section, values in user_config.items():
-            if section in config:
-                config[section].update(values)
-            else:
-                config[section] = values
-
-        return config
-
-    except Exception as e:
-        # Log warning and use defaults
-        print(f"Warning: Failed to load config from {config_path}: {e}")
-        return DEFAULT_CONFIG.copy()
-
-
-def save_default_config() -> None:
-    """Save default configuration to file."""
-    config_path = get_config_path()
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Convert to TOML format
-    lines = [
-        "# powermonitor configuration file",
-        "",
-        "[database]",
-        f'path = "{DEFAULT_CONFIG["database"]["path"]}"',
-        "",
-        "[collection]",
-        f'interval = {DEFAULT_CONFIG["collection"]["interval"]}',
-        "",
-        "[display]",
-        f'chart_history = {DEFAULT_CONFIG["display"]["chart_history"]}',
-        f'stats_limit = {DEFAULT_CONFIG["display"]["stats_limit"]}',
-        "",
-        "[logging]",
-        f'level = "{DEFAULT_CONFIG["logging"]["level"]}"',
-    ]
-
-    config_path.write_text("\n".join(lines))
-```
-
-**Update CLI**:
-```python
-from .config import load_config
-
-@app.command()
-def main(interval: float | None = None, ...) -> None:
-    """Main entry point."""
-    config = load_config()
-
-    # CLI args override config file
-    collection_interval = interval or config["collection"]["interval"]
-
-    PowerMonitorApp(collection_interval=collection_interval).run()
-```
+**Files**:
+- `src/powermonitor/config.py` - Extended PowerMonitorConfig dataclass
+- `src/powermonitor/config_loader.py` - TOML loading and parsing
+- `src/powermonitor/cli.py` - All commands updated to use config
+- `src/powermonitor/tui/app.py` - Uses config.database_path
+- `src/powermonitor/database.py` - Simplified, removed environment variable
 
 ---
 
@@ -420,9 +335,9 @@ def main(interval: float | None = None, ...) -> None:
 16. ✅ Battery health tracking (#16) - Useful insights
 17. ✅ Database statistics command (bonus)
 
-### Phase 5 (Lower Priority - Optional)
+### Phase 5 (Lower Priority - Optional) ✅ PARTIALLY COMPLETED
 8. Add TUI tests (#8) - Requires macOS, 2-3 hours
-10. Add configuration file support (#10) - Probably not needed
+10. ✅ Add configuration file support (#10) - Completed 2026-01-06
 
 ---
 

@@ -28,6 +28,33 @@ powermonitor --interval 1.0 --stats-limit 100 --chart-limit 60 --debug
 uv run powermonitor
 ```
 
+### Configuration File
+
+powermonitor supports an optional configuration file at `~/.powermonitor/config.toml`:
+
+```toml
+# powermonitor configuration file
+
+[tui]
+interval = 1.0           # Data collection interval in seconds
+stats_limit = 100        # Number of readings for statistics
+chart_limit = 60         # Number of readings to display in chart
+
+[database]
+path = "~/.powermonitor/powermonitor.db"  # Database file location
+
+[cli]
+default_history_limit = 20           # Default limit for history command
+default_export_limit = 1000          # Default limit for export command
+
+[logging]
+level = "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
+```
+
+**Configuration Priority**: CLI arguments > Config file > Defaults
+
+If no config file exists, powermonitor uses sensible defaults. CLI arguments always override config file values.
+
 ### CLI Commands
 
 powermonitor provides comprehensive data management commands:
@@ -83,7 +110,8 @@ powermonitor/
 │       ├── cli.py              # CLI entry point with multiple commands
 │       ├── models.py           # PowerReading dataclass (12 fields)
 │       ├── database.py         # SQLite operations
-│       ├── config.py           # PowerMonitorConfig dataclass
+│       ├── config.py           # PowerMonitorConfig dataclass (extended with all settings)
+│       ├── config_loader.py    # TOML configuration file loader
 │       ├── logger.py           # Logging configuration
 │       ├── collector/
 │       │   ├── __init__.py
@@ -105,7 +133,7 @@ powermonitor/
     └── fixtures/
         └── real_mac.txt        # Sample ioreg output for testing
 
-Database location: ~/.powermonitor/powermonitor.db (auto-created)
+Database location: ~/.powermonitor/powermonitor.db (auto-created, configurable via config.toml)
 ```
 
 ## Architecture Overview
@@ -191,7 +219,7 @@ class PowerReading:
 
 ### Database Schema
 
-All power readings are automatically saved to SQLite at `~/.powermonitor/powermonitor.db` (configurable via `POWERMONITOR_DB_PATH` environment variable):
+All power readings are automatically saved to SQLite at `~/.powermonitor/powermonitor.db` (configurable via `[database].path` in config.toml):
 
 ```sql
 CREATE TABLE IF NOT EXISTS power_readings (
@@ -224,8 +252,10 @@ powermonitor provides multiple commands via `typer`:
 
 **Main Command** (`src/powermonitor/cli.py:main`):
 - Launches TUI with configurable options
-- Options: `--interval`, `--stats-limit`, `--chart-limit`, `--debug`
-- Configuration validation via `PowerMonitorConfig`
+- Loads config from `~/.powermonitor/config.toml` (if exists)
+- CLI options override config values: `--interval`, `--stats-limit`, `--chart-limit`, `--debug`
+- Configuration priority: CLI args > Config file > Defaults
+- Configuration validation via `PowerMonitorConfig.__post_init__()`
 
 **Data Export** (`powermonitor export`):
 - Exports readings to CSV or JSON format
@@ -256,6 +286,48 @@ powermonitor provides multiple commands via `typer`:
 - Shows change in mAh and percentage
 - Status indicators: Stable / Degrading (normal) / Degrading (significant)
 - Daily trend table for last 7 days
+
+### Configuration System
+
+powermonitor uses a flexible configuration system with three layers:
+
+**Configuration Layers** (in priority order):
+1. **CLI Arguments** - Highest priority, overrides everything
+2. **Config File** - `~/.powermonitor/config.toml` (optional)
+3. **Defaults** - Hardcoded defaults in `PowerMonitorConfig`
+
+**Implementation** (`src/powermonitor/config_loader.py`):
+- `load_config() -> PowerMonitorConfig`: Loads TOML file and returns config object
+- `get_config_path() -> Path`: Returns path to config file
+- Graceful fallback: Missing or invalid config files use defaults with warning
+- All config values validated via `PowerMonitorConfig.__post_init__()`
+
+**PowerMonitorConfig Fields** (`src/powermonitor/config.py`):
+- `collection_interval: float = 1.0` - Data collection interval in seconds
+- `stats_history_limit: int = 100` - Number of readings for statistics
+- `chart_history_limit: int = 60` - Number of readings to display in chart
+- `database_path: Path` - Database file location (default: `~/.powermonitor/powermonitor.db`)
+- `default_history_limit: int = 20` - Default limit for history command
+- `default_export_limit: int = 1000` - Default limit for export command
+- `log_level: str = "INFO"` - Logging level (DEBUG, INFO, WARNING, ERROR)
+
+**Usage Pattern in CLI Commands**:
+```python
+from .config_loader import load_config
+
+def some_command(limit: int | None = None):
+    # Load config (file or defaults)
+    config = load_config()
+
+    # CLI arg overrides config
+    if limit is None:
+        limit = config.default_history_limit
+
+    # Use config for database path
+    db = Database(config.database_path)
+```
+
+**Breaking Change**: The `POWERMONITOR_DB_PATH` environment variable is no longer supported. Use `[database].path` in config.toml instead.
 
 ### IOKit/SMC FFI Implementation
 

@@ -11,9 +11,8 @@ from loguru import logger
 from rich.console import Console
 from rich.table import Table
 
-from .config import PowerMonitorConfig
+from .config_loader import load_config
 from .database import Database
-from .database import get_default_db_path
 from .logger import setup_logger
 from .tui.app import PowerMonitorApp
 
@@ -24,35 +23,32 @@ console = Console()
 @app.command()
 def main(
     interval: Annotated[
-        float,
+        float | None,
         typer.Option(
             "-i",
             "--interval",
-            help="Data collection interval in seconds",
-            show_default=True,
+            help="Data collection interval in seconds (overrides config file)",
         ),
-    ] = 1.0,
+    ] = None,
     stats_limit: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--stats-limit",
-            help="Number of readings to include in statistics",
-            show_default=True,
+            help="Number of readings to include in statistics (overrides config file)",
         ),
-    ] = 100,
+    ] = None,
     chart_limit: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--chart-limit",
-            help="Number of readings to display in chart",
-            show_default=True,
+            help="Number of readings to display in chart (overrides config file)",
         ),
-    ] = 60,
+    ] = None,
     debug: Annotated[
         bool,
         typer.Option(
             "--debug",
-            help="Enable debug logging",
+            help="Enable debug logging (overrides config file)",
             show_default=True,
         ),
     ] = False,
@@ -60,27 +56,35 @@ def main(
     """Main entry point for powermonitor CLI.
 
     Directly launches the Textual TUI (no subcommands needed).
+
+    Configuration priority: CLI arguments > Config file (~/.powermonitor/config.toml) > Defaults
     """
-    # Setup logging
+    # Load configuration from file (or use defaults)
+    config = load_config()
+
+    # CLI arguments override config values (if provided)
+    if interval is not None:
+        config.collection_interval = interval
+    if stats_limit is not None:
+        config.stats_history_limit = stats_limit
+    if chart_limit is not None:
+        config.chart_history_limit = chart_limit
     if debug:
-        setup_logger(level="DEBUG")
-    else:
-        setup_logger(level="INFO")
+        config.log_level = "DEBUG"
+
+    # Setup logging with config level
+    setup_logger(level=config.log_level)
+
+    # Validate configuration after overrides
+    try:
+        config.__post_init__()
+    except ValueError as e:
+        logger.error(f"Invalid configuration: {e}")
+        sys.exit(1)
 
     # Check platform
     if sys.platform != "darwin":
         logger.error("powermonitor only supports macOS")
-        sys.exit(1)
-
-    # Create configuration with validation
-    try:
-        config = PowerMonitorConfig(
-            collection_interval=interval,
-            stats_history_limit=stats_limit,
-            chart_history_limit=chart_limit,
-        )
-    except ValueError as e:
-        logger.error(f"Invalid configuration: {e}")
         sys.exit(1)
 
     # Launch TUI
@@ -116,12 +120,16 @@ def export(
 ) -> None:
     """Export power readings to CSV or JSON file.
 
+    Uses config file for database path and default export limit.
+
     Examples:
         powermonitor export data.csv
         powermonitor export data.json --limit 1000
         powermonitor export backup.csv --format csv
     """
-    setup_logger(level="INFO")
+    # Load config for database path and defaults
+    config = load_config()
+    setup_logger(level=config.log_level)
 
     # Detect format from extension if not specified
     if format_type is None:
@@ -142,8 +150,8 @@ def export(
         sys.exit(1)
 
     try:
-        # Get database
-        db = Database(get_default_db_path())
+        # Get database using config path
+        db = Database(config.database_path)
 
         # Query readings
         console.print("[cyan]Querying database...[/cyan]")
@@ -238,6 +246,8 @@ def _export_json(output_path: Path, readings: list) -> None:
 def stats() -> None:
     """Show database statistics.
 
+    Uses config file for database path.
+
     Displays information about stored readings including:
     - Total number of readings
     - Date range (earliest to latest)
@@ -246,10 +256,12 @@ def stats() -> None:
     Examples:
         powermonitor stats
     """
-    setup_logger(level="INFO")
+    # Load config for database path
+    config = load_config()
+    setup_logger(level=config.log_level)
 
     try:
-        db_path = get_default_db_path()
+        db_path = config.database_path
         db = Database(db_path)
 
         # Get database file size
@@ -299,11 +311,15 @@ def cleanup(
 ) -> None:
     """Clean up old power readings from database.
 
+    Uses config file for database path.
+
     Examples:
         powermonitor cleanup --days 30
         powermonitor cleanup --all
     """
-    setup_logger(level="INFO")
+    # Load config for database path
+    config = load_config()
+    setup_logger(level=config.log_level)
 
     if not days and not all_data:
         console.print("[red]Error: Must specify either --days N or --all[/red]")
@@ -311,7 +327,7 @@ def cleanup(
         sys.exit(1)
 
     try:
-        db = Database(get_default_db_path())
+        db = Database(config.database_path)
 
         if all_data:
             # Confirm deletion of all data
@@ -341,20 +357,28 @@ def cleanup(
 @app.command()
 def history(
     limit: Annotated[
-        int,
-        typer.Option("--limit", "-n", help="Number of recent readings to show"),
-    ] = 20,
+        int | None,
+        typer.Option("--limit", "-n", help="Number of recent readings to show (uses config default if not specified)"),
+    ] = None,
 ) -> None:
     """Show recent power readings from database.
+
+    Uses config file for database path and default limit.
 
     Examples:
         powermonitor history
         powermonitor history --limit 50
     """
-    setup_logger(level="INFO")
+    # Load config for database path and defaults
+    config = load_config()
+    setup_logger(level=config.log_level)
+
+    # Use config default if limit not specified
+    if limit is None:
+        limit = config.default_history_limit
 
     try:
-        db = Database(get_default_db_path())
+        db = Database(config.database_path)
         readings = db.query_history(limit=limit)
 
         if not readings:
@@ -409,16 +433,20 @@ def health(
 ) -> None:
     """Show battery health trend over time.
 
+    Uses config file for database path.
+
     Analyzes max_capacity changes to detect battery degradation.
 
     Examples:
         powermonitor health
         powermonitor health --days 60
     """
-    setup_logger(level="INFO")
+    # Load config for database path
+    config = load_config()
+    setup_logger(level=config.log_level)
 
     try:
-        db = Database(get_default_db_path())
+        db = Database(config.database_path)
         results = db.get_battery_health_trend(days=days)
 
         if not results:
