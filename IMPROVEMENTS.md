@@ -36,6 +36,26 @@ This document outlines recommended improvements for the powermonitor project, or
 - Validates: positive values, warns on very short intervals (< 0.1s)
 - All validation covered by tests
 
+**7. Singleton Pattern Bug** - ✅ Completed (2026-01-06)
+- Replaced global singleton with path-aware caching using `dict[Path, Database]`
+- Now correctly handles multiple database paths
+- Paths are normalized to absolute paths for consistent caching
+- Files: `src/powermonitor/database.py:263-284`
+
+### Minor Issues (Completed)
+
+**11. Redundant Pass Statements** - ✅ Completed (2026-01-06)
+- Removed unnecessary `pass` statements from exception classes with docstrings
+- Cleaned up: `PowerCollectorError`, `CommandFailedError`, `ParseError`, `IOKitError`
+- Files: `src/powermonitor/models.py:59-80`
+
+**12. Potential Data Loss on Quit** - ✅ Completed (2026-01-06)
+- Improved `action_quit()` with graceful shutdown sequence
+- Shows "Shutting down..." notification
+- Cancels collection task and waits for completion
+- Gives pending database writes time to complete (100ms sleep)
+- Files: `src/powermonitor/tui/app.py:206-226`
+
 ---
 
 ## Moderate Issues (Remaining)
@@ -93,66 +113,6 @@ def main(
 
     # ... rest of main ...
 ```
-
----
-
-### 7. Singleton Pattern Bug
-
-**File**: `src/powermonitor/database.py:270-285`
-
-**Problem**: Global singleton `_default_db` doesn't respect different `db_path` arguments after first call.
-
-**Current Code**:
-```python
-_default_db: Database | None = None
-
-def get_database(db_path: Path | str = DB_PATH) -> Database:
-    global _default_db
-    if _default_db is None:
-        _default_db = Database(db_path)
-    return _default_db  # Always returns first instance, ignoring new db_path
-```
-
-**Bug Example**:
-```python
-# First call creates database at path1
-db1 = get_database("/path1/db.sqlite")
-
-# Second call IGNORES path2 and returns db1!
-db2 = get_database("/path2/db.sqlite")
-
-assert db1 is db2  # True (bug!)
-assert db2.db_path == Path("/path1/db.sqlite")  # True (unexpected!)
-```
-
-**Recommendation**: Use path-aware caching:
-
-```python
-_db_instances: dict[Path, Database] = {}
-
-def get_database(db_path: Path | str = DB_PATH) -> Database:
-    """Get database instance for the specified path.
-
-    Uses caching to return the same instance for the same path.
-
-    Args:
-        db_path: Path to database file
-
-    Returns:
-        Database instance for the specified path
-    """
-    path = Path(db_path).resolve()  # Resolve to absolute path
-
-    if path not in _db_instances:
-        _db_instances[path] = Database(path)
-
-    return _db_instances[path]
-```
-
-**Benefits**:
-- Correctly handles multiple database paths
-- Still provides singleton behavior per path
-- Thread-safe caching by path
 
 ---
 
@@ -461,94 +421,6 @@ def main(interval: float | None = None, ...) -> None:
 
 ---
 
-### 11. Redundant Pass Statements
-
-**File**: `src/powermonitor/models.py:62, 68, 88`
-
-**Problem**: Exception classes with docstrings don't need `pass` statements.
-
-**Current Code**:
-```python
-class PowerCollectorError(Exception):
-    """Base exception for power collection errors."""
-    pass  # Unnecessary - docstring makes class non-empty
-```
-
-**Recommendation**: Remove `pass` from all exception classes with docstrings:
-
-```python
-class PowerCollectorError(Exception):
-    """Base exception for power collection errors."""
-
-
-class CommandFailedError(PowerCollectorError):
-    """ioreg command execution failed."""
-
-
-class ParseError(PowerCollectorError):
-    """Plist/data parsing failed."""
-```
-
----
-
-### 12. Potential Data Loss on Quit
-
-**File**: `src/powermonitor/tui/app.py:188-190`
-
-**Problem**: App exits immediately without ensuring final data is saved or collection task completes gracefully.
-
-**Current Code**:
-```python
-async def action_quit(self) -> None:
-    """Handle quit action (Q or ESC)."""
-    self.exit()  # Immediate exit, might lose in-flight data
-```
-
-**Recommendation**: Graceful shutdown with data preservation:
-
-```python
-async def action_quit(self) -> None:
-    """Handle quit action (Q or ESC).
-
-    Ensures background collection task is cancelled cleanly
-    and any in-flight data is saved before exiting.
-    """
-    # Show shutting down notification
-    self.notify("Shutting down...", timeout=1)
-
-    # Cancel collection task and wait for completion
-    if self._collector_task and not self._collector_task.done():
-        self._collector_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await self._collector_task
-
-    # Give any pending database writes a moment to complete
-    # (if using threaded executor for database operations)
-    await asyncio.sleep(0.1)
-
-    # Now safe to exit
-    self.exit()
-```
-
-**Alternative**: Add shutdown hook in `on_unmount`:
-```python
-async def on_unmount(self) -> None:
-    """Clean up when app unmounts.
-
-    This is called automatically on exit and ensures clean shutdown.
-    """
-    # Cancel collection task
-    if self._collector_task and not self._collector_task.done():
-        self._collector_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await self._collector_task
-
-    # Close database connection if we implement persistent connection
-    if hasattr(self.database, 'close'):
-        self.database.close()
-```
-
----
 
 ## Enhancement Ideas
 
@@ -729,18 +601,18 @@ def get_battery_health_trend(self, days: int = 30) -> dict:
 2. ✅ Add resource cleanup (#2)
 3. ✅ Add database write error handling (#3)
 
-### Phase 2 (Important - Do Soon) - In Progress
+### Phase 2 (Important - Do Soon) ✅ COMPLETED
 4. ✅ Replace magic numbers with constants (#4)
 5. ✅ Add input validation (#5)
-6. Configure logging properly (#6)
-7. Fix singleton pattern bug (#7)
+6. ⏭️ Configure logging properly (#6) - SKIPPED (not needed)
+7. ✅ Fix singleton pattern bug (#7)
 
-### Phase 3 (Nice to Have - When Time Permits)
+### Phase 3 (Nice to Have - When Time Permits) - In Progress
 8. Add TUI tests (#8)
 9. Improve IOKit error handling (#9)
 10. Add configuration file support (#10)
-11. Remove redundant pass statements (#11)
-12. Improve shutdown sequence (#12)
+11. ✅ Remove redundant pass statements (#11)
+12. ✅ Improve shutdown sequence (#12)
 
 ### Phase 4 (Enhancements - Future Features)
 13. Add data export functionality

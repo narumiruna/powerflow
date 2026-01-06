@@ -260,22 +260,28 @@ class Database:
 
 
 # Module-level convenience functions
-_default_db: Database | None = None
+_db_instances: dict[Path, Database] = {}
 
 
 def get_database(db_path: Path | str = DB_PATH) -> Database:
-    """Get default database instance (singleton pattern).
+    """Get database instance for the specified path.
+
+    Uses caching to return the same instance for the same path.
+    Paths are normalized to absolute paths for consistent caching.
 
     Args:
         db_path: Path to database file
 
     Returns:
-        Database instance
+        Database instance for the specified path
     """
-    global _default_db
-    if _default_db is None:
-        _default_db = Database(db_path)
-    return _default_db
+    # Normalize path to absolute path for consistent caching
+    path = Path(db_path).resolve()
+
+    if path not in _db_instances:
+        _db_instances[path] = Database(path)
+
+    return _db_instances[path]
 
 
 def insert_reading(reading: PowerReading, db_path: Path | str = DB_PATH) -> int:

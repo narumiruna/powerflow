@@ -204,5 +204,23 @@ class PowerMonitorApp(App):
         self.refresh_all_data()
 
     async def action_quit(self) -> None:
-        """Handle quit action (Q or ESC)."""
+        """Handle quit action (Q or ESC).
+
+        Ensures background collection task is cancelled cleanly
+        and any in-flight data is saved before exiting.
+        """
+        # Show shutting down notification
+        self.notify("Shutting down...", timeout=1)
+
+        # Cancel collection task if it's running
+        if self._collector_task and not self._collector_task.done():
+            self._collector_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._collector_task
+
+        # Give any pending database writes a moment to complete
+        # (executor tasks may still be running)
+        await asyncio.sleep(0.1)
+
+        # Now safe to exit
         self.exit()
