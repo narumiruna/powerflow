@@ -104,7 +104,7 @@ This document outlines recommended improvements for the powermonitor project, or
 - Shows change in mAh and percentage
 - Status indicators: Stable / Degrading (normal) / Degrading (significant)
 - Daily trend table for last 7 days
-- Files: `src/powermonitor/cli.py:415-513`
+- Files: `src/powermonitor/cli.py:403-477`
 
 **Additional Improvements** - ✅ Completed (2026-01-06)
 - Added `stats` command to show database statistics
