@@ -2,8 +2,11 @@
 
 import csv
 import json
+import sqlite3
 import sys
+from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 from typing import Annotated
 
@@ -330,21 +333,7 @@ def cleanup(
             assert days is not None, "days must be specified"  # Type checker hint
             console.print(f"[cyan]Deleting readings older than {days} days...[/cyan]")
 
-            # Add cleanup_old_data method call here
-            # For now, we need to add this method to Database class
-            from datetime import UTC
-            from datetime import timedelta
-
-            cutoff = datetime.now(UTC) - timedelta(days=days)
-
-            # Use database directly with SQL
-            import sqlite3
-
-            with sqlite3.connect(db.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM power_readings WHERE timestamp < ?", (cutoff.isoformat(),))
-                deleted = cursor.rowcount
-
+            deleted = db.cleanup_old_data(days=days)
             console.print(f"[green]✓ Deleted {deleted} old readings[/green]")
 
     except Exception as e:
@@ -433,32 +422,8 @@ def health(
     setup_logger(level="INFO")
 
     try:
-        import sqlite3
-        from datetime import UTC
-        from datetime import timedelta
-
-        db_path = get_default_db_path()
-        cutoff = datetime.now(UTC) - timedelta(days=days)
-
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-
-            # Get daily average max_capacity
-            cursor.execute(
-                """
-                SELECT
-                    DATE(timestamp) as date,
-                    AVG(max_capacity) as avg_max_capacity,
-                    COUNT(*) as reading_count
-                FROM power_readings
-                WHERE timestamp >= ?
-                GROUP BY DATE(timestamp)
-                ORDER BY date ASC
-                """,
-                (cutoff.isoformat(),),
-            )
-
-            results = cursor.fetchall()
+        db = Database(get_default_db_path())
+        results = db.get_battery_health_trend(days=days)
 
         if not results:
             console.print(f"[yellow]No readings found in the last {days} days[/yellow]")

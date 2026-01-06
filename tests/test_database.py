@@ -227,3 +227,150 @@ def test_database_index_exists(temp_db):
     assert cursor.fetchone() is not None
 
     conn.close()
+
+
+def test_cleanup_old_data(database):
+    """Test cleanup_old_data method."""
+    base_time = datetime.now(UTC)
+
+    # Create readings with different ages
+    for i in range(5):
+        reading = PowerReading(
+            timestamp=base_time - timedelta(days=i * 10),  # 0, 10, 20, 30, 40 days old
+            watts_actual=40.0,
+            watts_negotiated=67,
+            voltage=20.0,
+            amperage=2.0,
+            current_capacity=3500,
+            max_capacity=4709,
+            battery_percent=74,
+            is_charging=True,
+            external_connected=True,
+            charger_name=None,
+            charger_manufacturer=None,
+        )
+        database.insert_reading(reading)
+
+    # Delete readings older than 25 days (should delete 2: 30 and 40 days old)
+    deleted = database.cleanup_old_data(days=25)
+    assert deleted == 2
+
+    # Verify remaining readings
+    remaining = database.query_history(limit=None)
+    assert len(remaining) == 3
+
+
+def test_cleanup_old_data_none_old(database):
+    """Test cleanup_old_data when no readings are old enough."""
+    # Create recent readings (all within last day)
+    base_time = datetime.now(UTC)
+    for i in range(3):
+        reading = PowerReading(
+            timestamp=base_time - timedelta(hours=i),
+            watts_actual=40.0,
+            watts_negotiated=67,
+            voltage=20.0,
+            amperage=2.0,
+            current_capacity=3500,
+            max_capacity=4709,
+            battery_percent=74,
+            is_charging=True,
+            external_connected=True,
+            charger_name=None,
+            charger_manufacturer=None,
+        )
+        database.insert_reading(reading)
+
+    # Try to delete readings older than 7 days (should delete 0)
+    deleted = database.cleanup_old_data(days=7)
+    assert deleted == 0
+
+    # Verify all readings still exist
+    remaining = database.query_history(limit=None)
+    assert len(remaining) == 3
+
+
+def test_cleanup_old_data_empty(database):
+    """Test cleanup_old_data on empty database."""
+    deleted = database.cleanup_old_data(days=30)
+    assert deleted == 0
+
+
+def test_get_battery_health_trend(database):
+    """Test get_battery_health_trend method."""
+    base_time = datetime.now(UTC)
+
+    # Create readings over 7 days with slight capacity degradation
+    for day in range(7):
+        for i in range(5):  # 5 readings per day
+            reading = PowerReading(
+                timestamp=base_time - timedelta(days=day, hours=i),
+                watts_actual=40.0,
+                watts_negotiated=67,
+                voltage=20.0,
+                amperage=2.0,
+                current_capacity=3500,
+                max_capacity=4700 - day,  # Simulate degradation: 4700, 4699, 4698...
+                battery_percent=74,
+                is_charging=True,
+                external_connected=True,
+                charger_name=None,
+                charger_manufacturer=None,
+            )
+            database.insert_reading(reading)
+
+    # Get health trend
+    results = database.get_battery_health_trend(days=7)
+
+    # Should have 7 days of data
+    assert len(results) == 7
+
+    # Each result is (date, avg_max_capacity, reading_count)
+    for result in results:
+        assert len(result) == 3
+        assert isinstance(result[0], str)  # date
+        assert isinstance(result[1], float)  # avg_max_capacity
+        assert isinstance(result[2], int)  # reading_count
+        assert result[2] == 5  # 5 readings per day
+
+    # Check that capacity values are in expected range
+    capacities = [r[1] for r in results]
+    assert all(4694 <= c <= 4700 for c in capacities)
+
+
+def test_get_battery_health_trend_no_data(database):
+    """Test get_battery_health_trend with no data."""
+    results = database.get_battery_health_trend(days=7)
+    assert len(results) == 0
+
+
+def test_get_battery_health_trend_partial_days(database):
+    """Test get_battery_health_trend with only some days having data."""
+    base_time = datetime.now(UTC)
+
+    # Create readings only for 3 specific days
+    for day in [0, 2, 5]:
+        for i in range(3):
+            reading = PowerReading(
+                timestamp=base_time - timedelta(days=day, hours=i),
+                watts_actual=40.0,
+                watts_negotiated=67,
+                voltage=20.0,
+                amperage=2.0,
+                current_capacity=3500,
+                max_capacity=4700,
+                battery_percent=74,
+                is_charging=True,
+                external_connected=True,
+                charger_name=None,
+                charger_manufacturer=None,
+            )
+            database.insert_reading(reading)
+
+    # Get health trend for 7 days
+    results = database.get_battery_health_trend(days=7)
+
+    # Should only have 3 days with data
+    assert len(results) == 3
+    for result in results:
+        assert result[2] == 3  # 3 readings per day

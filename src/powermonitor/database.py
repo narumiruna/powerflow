@@ -2,7 +2,9 @@
 
 import os
 import sqlite3
+from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 
 from .models import PowerReading
@@ -274,6 +276,56 @@ class Database:
             # Commit is automatic with context manager
 
             return rows_deleted
+
+    def cleanup_old_data(self, days: int) -> int:
+        """Delete power readings older than specified number of days.
+
+        Args:
+            days: Number of days - readings older than this will be deleted
+
+        Returns:
+            Number of rows deleted
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM power_readings WHERE timestamp < ?", (cutoff.isoformat(),))
+            rows_deleted = cursor.rowcount
+            # Commit is automatic with context manager
+
+            return rows_deleted
+
+    def get_battery_health_trend(self, days: int = 30) -> list[tuple[str, float, int]]:
+        """Get daily average battery health (max_capacity) over specified period.
+
+        Args:
+            days: Number of days to analyze (default: 30)
+
+        Returns:
+            List of tuples: (date, avg_max_capacity, reading_count)
+            Ordered by date ascending
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT
+                    DATE(timestamp) as date,
+                    AVG(max_capacity) as avg_max_capacity,
+                    COUNT(*) as reading_count
+                FROM power_readings
+                WHERE timestamp >= ?
+                GROUP BY DATE(timestamp)
+                ORDER BY date ASC
+                """,
+                (cutoff.isoformat(),),
+            )
+
+            return cursor.fetchall()
 
 
 # Module-level convenience functions
