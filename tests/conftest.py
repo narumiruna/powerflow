@@ -74,3 +74,48 @@ def ioreg_fixture_path():
         Path to ioreg output fixture
     """
     return Path(__file__).parent / "fixtures" / "real_mac.txt"
+
+
+@pytest.fixture
+def temp_config(temp_db, monkeypatch):
+    """Create a temporary config file for testing.
+
+    Args:
+        temp_db: Temporary database path fixture
+        monkeypatch: Pytest monkeypatch fixture
+
+    Yields:
+        Path to temporary config file
+
+    Cleanup:
+        Removes config file after test
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        config_content = f"""
+[tui]
+interval = 1.0
+stats_limit = 100
+chart_limit = 60
+
+[database]
+path = "{temp_db}"
+
+[cli]
+default_history_limit = 20
+default_export_limit = 1000
+
+[logging]
+level = "INFO"
+"""
+        f.write(config_content)
+        config_path = f.name
+
+    # Monkeypatch get_config_path to return temp config
+    from powermonitor import config_loader
+
+    monkeypatch.setattr(config_loader, "get_config_path", lambda: Path(config_path))
+
+    yield config_path
+
+    # Cleanup
+    Path(config_path).unlink(missing_ok=True)
