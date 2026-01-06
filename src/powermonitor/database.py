@@ -2,7 +2,9 @@
 
 import os
 import sqlite3
+from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 
 from .models import PowerReading
@@ -284,9 +286,6 @@ class Database:
         Returns:
             Number of rows deleted
         """
-        from datetime import UTC
-        from datetime import timedelta
-
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
         with sqlite3.connect(self.db_path) as conn:
@@ -307,9 +306,6 @@ class Database:
             List of tuples: (date, avg_max_capacity, reading_count)
             Ordered by date ascending
         """
-        from datetime import UTC
-        from datetime import timedelta
-
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
         with sqlite3.connect(self.db_path) as conn:
