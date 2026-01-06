@@ -56,6 +56,13 @@ This document outlines recommended improvements for the powermonitor project, or
 - Gives pending database writes time to complete (100ms sleep)
 - Files: `src/powermonitor/tui/app.py:206-226`
 
+**6. Limited Logging Configuration** - ✅ Completed (commit `94815a6`, 2026-01-06)
+- Added `setup_logger()` function with configurable log levels
+- CLI has `--debug` option to enable DEBUG level logging
+- Default level is INFO for normal operation
+- Uses loguru with custom formatting
+- Files: `src/powermonitor/logger.py`, `src/powermonitor/cli.py:56-60`
+
 ### Phase 3 Completed
 
 **9. Inconsistent Error Handling in IOKit** - ✅ Completed (2026-01-06)
@@ -70,71 +77,156 @@ This document outlines recommended improvements for the powermonitor project, or
 
 ---
 
-## Moderate Issues (Remaining)
+## Remaining Issues (Reprioritized)
 
-### 6. Limited Logging Configuration
+### Critical Missing Features
 
-**File**: `src/powermonitor/cli.py`
+These are essential features that users need but are currently missing:
 
-**Problem**: loguru is imported but never configured. Default settings may be too verbose or not verbose enough for different use cases.
+### 13. Data Export Command (HIGH PRIORITY)
 
-**Recommendation**: Add logging configuration with verbosity levels:
+**Problem**: Users cannot export their collected power data for external analysis.
 
-```python
-import sys
-from loguru import logger
-import typer
+**Current State**:
+- Data is collected and stored in SQLite
+- No way to access it except through TUI
+- Users want CSV/JSON exports for Excel, Python, etc.
 
-def configure_logging(verbose: bool = False, debug: bool = False) -> None:
-    """Configure loguru logging based on verbosity level.
+**Recommendation**: Add export subcommand
 
-    Args:
-        verbose: Enable INFO level logging
-        debug: Enable DEBUG level logging
-    """
-    logger.remove()  # Remove default handler
+```bash
+# Export to CSV
+powermonitor export data.csv --limit 1000
 
-    if debug:
-        level = "DEBUG"
-    elif verbose:
-        level = "INFO"
-    else:
-        level = "WARNING"
+# Export to JSON
+powermonitor export data.json --from "2026-01-01" --to "2026-01-06"
 
-    logger.add(
-        sys.stderr,
-        level=level,
-        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | {message}",
-        colorize=True,
-    )
-
-@app.command()
-def main(
-    interval: Annotated[float, ...] = 1.0,
-    verbose: Annotated[
-        bool,
-        typer.Option("-v", "--verbose", help="Enable verbose logging")
-    ] = False,
-    debug: Annotated[
-        bool,
-        typer.Option("--debug", help="Enable debug logging")
-    ] = False,
-) -> None:
-    """Main entry point for powermonitor CLI."""
-    configure_logging(verbose=verbose, debug=debug)
-
-    # ... rest of main ...
+# Export all data
+powermonitor export backup.csv
 ```
+
+**Implementation**:
+- Add `export` command to CLI with typer
+- Reuse `Database.query_history()` method
+- Support CSV and JSON formats (detect from extension)
+- Add `--limit`, `--from`, `--to` filters
+
+**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
 
 ---
 
-## Minor Issues
+### 14. Data Cleanup Command (HIGH PRIORITY)
 
-### 8. Missing TUI Tests
+**Problem**: Database grows indefinitely, no automated cleanup mechanism.
 
-**Problem**: No tests for TUI components (app.py, widgets.py), making UI regressions hard to detect.
+**Current State**:
+- Every reading is saved permanently
+- Database can grow to hundreds of MB over time
+- Users have to manually delete the database file
 
-**Recommendation**: Add Textual unit tests using `textual.pilot`:
+**Recommendation**: Add cleanup/stats commands
+
+```bash
+# Delete readings older than 30 days
+powermonitor cleanup --days 30
+
+# Show database statistics
+powermonitor stats
+# Output:
+#   Total readings: 12,450
+#   Earliest: 2025-12-01 10:30:00
+#   Latest: 2026-01-06 15:22:00
+#   Database size: 2.4 MB
+
+# Clear all history (with confirmation)
+powermonitor cleanup --all
+```
+
+**Implementation**:
+- Add `cleanup` and `stats` commands
+- Add `Database.cleanup_old_data(days)` method
+- Add `Database.get_statistics_full()` method
+- Require confirmation for destructive operations
+
+**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
+
+---
+
+### 15. History Query Command (HIGH PRIORITY)
+
+**Problem**: Cannot view historical data without launching TUI.
+
+**Current State**:
+- Must launch full TUI to see any data
+- No quick way to check recent readings
+
+**Recommendation**: Add history query command
+
+```bash
+# Show last 20 readings
+powermonitor history --limit 20
+
+# Show readings from specific time range
+powermonitor history --from "2026-01-06 10:00" --to "2026-01-06 12:00"
+
+# Show only charging sessions
+powermonitor history --charging-only
+```
+
+**Implementation**:
+- Add `history` command to CLI
+- Format output as table using rich
+- Add filters: limit, from, to, charging-only
+- Show key metrics: time, watts, battery %, status
+
+**Files**: `src/powermonitor/cli.py`
+
+---
+
+### 16. Battery Health Tracking Command (MEDIUM PRIORITY)
+
+**Problem**: No way to track battery degradation over time.
+
+**Current State**:
+- `max_capacity` field is collected but not analyzed
+- Users want to know if battery is degrading
+
+**Recommendation**: Add health tracking command
+
+```bash
+# Show battery health trend (last 30 days)
+powermonitor health --days 30
+# Output:
+#   First avg capacity: 4,709 mAh (2025-12-06)
+#   Last avg capacity: 4,650 mAh (2026-01-06)
+#   Change: -59 mAh (-1.25%)
+#   Status: Degrading (normal wear)
+```
+
+**Implementation**:
+- Add `health` command to CLI
+- Add `Database.get_battery_health_trend(days)` method
+- Calculate daily average max_capacity
+- Show trend (stable/degrading) and percentage change
+
+**Files**: `src/powermonitor/cli.py`, `src/powermonitor/database.py`
+
+---
+
+## Lower Priority Issues
+
+These are less urgent but still valuable:
+
+### 8. Missing TUI Tests (LOW PRIORITY - REQUIRES MACOS)
+
+**Problem**: TUI components (174 lines) have 0% test coverage.
+
+**Limitations**:
+- Requires macOS environment to run
+- TUI depends on IOKit which only works on macOS
+- Cannot test on Linux CI/CD
+
+**Recommendation**: Add Textual unit tests using `textual.pilot` (if developing on macOS):
 
 **File**: `tests/test_tui.py` (new file)
 ```python
@@ -257,11 +349,22 @@ async def test_app_refresh_action():
 
 ---
 
-### 10. No Configuration File Support
+### 10. Configuration File Support (LOW PRIORITY - MAYBE NOT NEEDED)
 
-**Problem**: Only environment variable for DB path. No way to configure collection interval, chart limits, etc., without CLI arguments or code changes.
+**Problem**: Currently requires CLI arguments for configuration.
 
-**Recommendation**: Add TOML configuration file support.
+**Current State**:
+- CLI has `--interval`, `--stats-limit`, `--chart-limit`, `--debug` options
+- Options work well for most use cases
+- Environment variable `POWERMONITOR_DB_PATH` for database location
+
+**Consideration**: Config file might be over-engineering
+- Most users run with defaults
+- CLI options are sufficient for customization
+- Adds complexity (file parsing, precedence rules, etc.)
+- Consider only if users request it
+
+**Recommendation** (if needed): Add TOML configuration file support.
 
 **File**: `~/.powermonitor/config.toml` (user config)
 ```toml
@@ -388,179 +491,6 @@ def main(interval: float | None = None, ...) -> None:
 
 ---
 
-
-## Enhancement Ideas
-
-### 13. Add Export Functionality
-
-Allow users to export collected data to CSV or JSON for external analysis.
-
-**File**: `src/powermonitor/database.py`
-
-```python
-def export_to_csv(self, output_path: Path | str, limit: int | None = None) -> int:
-    """Export power readings to CSV file.
-
-    Args:
-        output_path: Path to output CSV file
-        limit: Maximum number of readings to export (None = all)
-
-    Returns:
-        Number of readings exported
-    """
-    import csv
-
-    readings = self.query_history(limit=limit or 999999)
-
-    with open(output_path, 'w', newline='') as f:
-        writer = csv.writer(f)
-
-        # Header
-        writer.writerow([
-            'timestamp', 'watts_actual', 'watts_negotiated',
-            'voltage', 'amperage', 'current_capacity', 'max_capacity',
-            'battery_percent', 'is_charging', 'external_connected',
-            'charger_name', 'charger_manufacturer'
-        ])
-
-        # Data
-        for r in readings:
-            writer.writerow([
-                r.timestamp.isoformat(),
-                r.watts_actual,
-                r.watts_negotiated,
-                r.voltage,
-                r.amperage,
-                r.current_capacity,
-                r.max_capacity,
-                r.battery_percent,
-                r.is_charging,
-                r.external_connected,
-                r.charger_name or '',
-                r.charger_manufacturer or '',
-            ])
-
-    return len(readings)
-```
-
-### 14. Add Data Retention Policy
-
-Automatically clean up old data to prevent database from growing indefinitely.
-
-**File**: `src/powermonitor/database.py`
-
-```python
-def cleanup_old_data(self, days_to_keep: int = 30) -> int:
-    """Delete readings older than specified days.
-
-    Args:
-        days_to_keep: Number of days of data to retain
-
-    Returns:
-        Number of rows deleted
-    """
-    cutoff = datetime.now(UTC) - timedelta(days=days_to_keep)
-
-    conn = sqlite3.connect(self.db_path)
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "DELETE FROM power_readings WHERE timestamp < ?",
-        (cutoff.isoformat(),)
-    )
-
-    rows_deleted = cursor.rowcount
-    conn.commit()
-    conn.close()
-
-    return rows_deleted
-```
-
-**Trigger**: Add periodic cleanup in TUI app:
-
-```python
-async def _periodic_cleanup(self) -> None:
-    """Run periodic database cleanup."""
-    while True:
-        await asyncio.sleep(3600)  # Every hour
-
-        # Cleanup data older than 30 days
-        try:
-            deleted = await asyncio.get_event_loop().run_in_executor(
-                None,
-                self.database.cleanup_old_data,
-                30
-            )
-            if deleted > 0:
-                logger.info(f"Cleaned up {deleted} old readings")
-        except Exception as e:
-            logger.warning(f"Cleanup failed: {e}")
-```
-
-### 15. Add Battery Health Metrics
-
-Track battery degradation over time by monitoring max capacity changes.
-
-**File**: `src/powermonitor/database.py`
-
-```python
-def get_battery_health_trend(self, days: int = 30) -> dict:
-    """Calculate battery health trend over time.
-
-    Args:
-        days: Number of days to analyze
-
-    Returns:
-        Dictionary with health metrics
-    """
-    cutoff = datetime.now(UTC) - timedelta(days=days)
-
-    conn = sqlite3.connect(self.db_path)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT
-            DATE(timestamp) as date,
-            AVG(max_capacity) as avg_max_capacity,
-            MIN(max_capacity) as min_max_capacity,
-            MAX(max_capacity) as max_max_capacity
-        FROM power_readings
-        WHERE timestamp >= ?
-        GROUP BY DATE(timestamp)
-        ORDER BY date ASC
-    """, (cutoff.isoformat(),))
-
-    results = cursor.fetchall()
-    conn.close()
-
-    if not results:
-        return {"trend": "unknown", "data": []}
-
-    # Calculate trend
-    first_capacity = results[0][1]
-    last_capacity = results[-1][1]
-    change_percent = ((last_capacity - first_capacity) / first_capacity) * 100
-
-    return {
-        "days_analyzed": days,
-        "first_avg_capacity": first_capacity,
-        "last_avg_capacity": last_capacity,
-        "change_percent": change_percent,
-        "trend": "degrading" if change_percent < -1 else "stable",
-        "daily_data": [
-            {
-                "date": row[0],
-                "avg_capacity": row[1],
-                "min_capacity": row[2],
-                "max_capacity": row[3],
-            }
-            for row in results
-        ],
-    }
-```
-
----
-
 ## Implementation Priority
 
 ### Phase 1 (Critical - Do First) ✅ COMPLETED
@@ -571,39 +501,62 @@ def get_battery_health_trend(self, days: int = 30) -> dict:
 ### Phase 2 (Important - Do Soon) ✅ COMPLETED
 4. ✅ Replace magic numbers with constants (#4)
 5. ✅ Add input validation (#5)
-6. ⏭️ Configure logging properly (#6) - SKIPPED (not needed)
+6. ✅ Configure logging properly (#6)
 7. ✅ Fix singleton pattern bug (#7)
 
-### Phase 3 (Nice to Have - When Time Permits) - In Progress
-8. Add TUI tests (#8)
+### Phase 3 (Code Quality) ✅ COMPLETED
 9. ✅ Improve IOKit error handling (#9)
-10. Add configuration file support (#10)
 11. ✅ Remove redundant pass statements (#11)
 12. ✅ Improve shutdown sequence (#12)
 
-### Phase 4 (Enhancements - Future Features)
-13. Add data export functionality
-14. Add data retention policy
-15. Add battery health tracking
+### Phase 4 (Essential Features - DO NEXT) 🎯
+**These are the most valuable features to implement:**
+13. **Data export command** (#13) - 30 min - Users need this
+14. **Data cleanup command** (#14) - 30 min - Database grows indefinitely
+15. **History query command** (#15) - 20 min - Quick data viewing
+16. **Battery health tracking** (#16) - 45 min - Useful insights
+
+### Phase 5 (Lower Priority - Optional)
+8. Add TUI tests (#8) - Requires macOS, 2-3 hours
+10. Add configuration file support (#10) - Probably not needed
 
 ---
 
-## Testing Strategy
+## Current Test Coverage Status
 
-After implementing improvements:
+**Overall**: 21% coverage (very low)
 
-1. **Unit Tests**: Ensure all modules have >80% coverage
-2. **Integration Tests**: Test end-to-end data flow
-3. **Error Injection**: Test error paths (database failures, IOKit errors)
-4. **Performance Tests**: Verify no regressions in memory/CPU usage
-5. **Manual Tests**: Run TUI for extended periods to check stability
+**Good coverage** (>80%):
+- ✅ Database: 88%
+- ✅ Config: 100%
+- ✅ Models: 94%
 
-## Documentation Updates
+**Zero coverage** (needs work):
+- ❌ TUI: 0% (174 lines) - Requires macOS
+- ❌ IOKit: 0% (318 lines) - Requires macOS
+- ❌ CLI: 0% (30 lines) - Can test commands
+- ❌ Logger: 0% (12 lines) - Easy to test
 
-After implementing improvements:
+**Recommended**: Focus on testing new CLI commands as they're added
 
-1. Update CLAUDE.md with new configuration options
-2. Update README.md with new CLI flags
-3. Add troubleshooting section for common issues
-4. Document configuration file format
-5. Add examples for export/health tracking features
+---
+
+## Documentation Updates Needed
+
+When implementing Phase 4 features:
+
+1. Update README.md with new CLI commands
+   - Add `powermonitor export` usage examples
+   - Add `powermonitor cleanup` usage examples
+   - Add `powermonitor history` usage examples
+   - Add `powermonitor health` usage examples
+
+2. Update CLAUDE.md with:
+   - New CLI command descriptions
+   - Database cleanup strategies
+   - Export format specifications
+
+3. Consider adding:
+   - User guide for data analysis workflows
+   - Examples of using exported CSV data
+   - Battery health interpretation guide
