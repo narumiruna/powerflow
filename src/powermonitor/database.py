@@ -44,6 +44,8 @@ class Database:
             db_path: Path to SQLite database file
         """
         self.db_path = Path(db_path)
+        # Ensure parent directory exists for custom database paths
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
     def __enter__(self):
