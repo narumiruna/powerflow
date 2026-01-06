@@ -148,7 +148,7 @@ def export(
 
         # Query readings
         console.print("[cyan]Querying database...[/cyan]")
-        readings = db.query_history(limit=limit or 999999)
+        readings = db.query_history(limit=limit)
 
         if not readings:
             console.print("[yellow]No readings found in database[/yellow]")
@@ -262,7 +262,7 @@ def stats() -> None:
             sys.exit(0)
 
         # Get statistics
-        stat_data = db.get_statistics(limit=999999)  # Get all readings for stats
+        stat_data = db.get_statistics(limit=None)  # Get all readings for stats
 
         if stat_data["count"] == 0:
             console.print("[yellow]No readings in database[/yellow]")
