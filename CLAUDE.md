@@ -146,7 +146,7 @@ powermonitor uses **Textual** for the TUI with a 3-panel auto-updating layout:
    - Status indicator: ⚡ Charging / 🔌 AC Power / 🔋 On Battery
    - Current power (W), battery %, voltage, amperage
    - Charger information if available
-   - Updates every 2 seconds
+   - Updates every 1 second
 
 2. **StatsPanel** (cyan border): Historical statistics
    - Time range (earliest/latest readings)
@@ -371,7 +371,7 @@ The TUI uses **asyncio** for background data collection:
 ```python
 async def _collection_loop(self) -> None:
     while True:
-        await asyncio.sleep(self.collection_interval)  # Default: 2.0s
+        await asyncio.sleep(self.config.collection_interval)  # Default: 1.0s
         await self._collect_and_update()
 
 async def _collect_and_update(self) -> None:
@@ -496,5 +496,5 @@ AppleRawAdapterDetails   → charger info array
 
 - Memory usage: <50MB RAM
 - CPU usage: <1% when idle
-- Collection interval: 2 seconds (configurable)
+- Collection interval: 1 second (configurable)
 - Database queries: Indexed by timestamp for fast retrieval
