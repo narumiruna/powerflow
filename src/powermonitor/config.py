@@ -1,5 +1,6 @@
 """Configuration management for powermonitor."""
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -91,8 +92,6 @@ class PowerMonitorConfig:
 
         # Warn about very short intervals (performance concerns)
         if self.collection_interval < 0.1:
-            import warnings
-
             warnings.warn(
                 f"Very short collection interval ({self.collection_interval}s) may cause high CPU usage. "
                 "Recommended minimum: 0.5s",

@@ -5,8 +5,13 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
+from peewee import BooleanField
+from peewee import DateTimeField
+from peewee import FloatField
+from peewee import IntegerField
 from peewee import Model
 from peewee import SqliteDatabase
+from peewee import TextField
 from peewee import fn
 
 from .models import PowerReading
@@ -76,17 +81,10 @@ class Database:
 
         # Create index with specific name for backward compatibility
         # Peewee's index=True would create an auto-named index, but tests expect idx_timestamp
-        self.db.execute_sql(
-            "CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)"
-        )
+        self.db.execute_sql("CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)")
 
     def _create_model(self):
         """Create a PowerReadingModel bound to this instance's database."""
-        from peewee import BooleanField
-        from peewee import DateTimeField
-        from peewee import FloatField
-        from peewee import IntegerField
-        from peewee import TextField
 
         class PowerReadingModel(Model):
             """Peewee ORM model for power_readings table."""
