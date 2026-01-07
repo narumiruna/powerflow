@@ -35,7 +35,7 @@ This document outlines remaining improvements for the powermonitor project.
 
 ### Summary
 
-**Overall Project Coverage**: 83% (up from 19%)
+**Overall Project Coverage**: 86% ⬆️ (up from 83%)
 
 **Major Improvements**:
 - CLI commands: 80% (was 0%)
@@ -47,6 +47,9 @@ This document outlines remaining improvements for the powermonitor project.
 - TUI App: 77% (was 0%)
 - Factory: 75% (was 62%)
 - TUI Widgets: 99% (was 0%)
+- **IOKit Collector: 100% ⬆️ (was 57%)**
+- **IOKit Bindings: 100%**
+- **IOKit Structures: 100%**
 
 **Benefits Achieved**:
 - Catches regressions early across all major components
@@ -93,9 +96,10 @@ See `tests/test_tui.py` for the implemented test suite.
 
 ## Current Test Coverage Status
 
-**Overall**: 83% coverage (significantly improved from 19%)
+**Overall**: 86% coverage ⬆️ (significantly improved from 83%)
 
 **Excellent coverage** (≥90%):
+- ✅ **IOKit Collector: 100% ⬆️ (was 57%)**
 - ✅ Logger: 100% ⬆️ (was 0%)
 - ✅ Config: 100%
 - ✅ IOKit Bindings: 100%
@@ -114,7 +118,25 @@ See `tests/test_tui.py` for the implemented test suite.
 - ✅ Config: 89%
 
 **Acceptable coverage** (50-69%):
-- ⚠️ IOKit Connection: 69%
-- ⚠️ IOKit Collector: 57%
+- ✅ IOKit Connection: 70% ⬆️ (was 69%)
 
-**Note**: Remaining IOKit components require macOS hardware for full coverage and cannot be fully tested in CI/CD. Current coverage levels are acceptable given the constraints.
+**Note**: IOKit Connection requires macOS hardware with SMC access for full coverage of actual IOKit API calls and cannot be fully tested in CI/CD environments. Additional tests have been added for:
+
+**IOKit Connection Tests**:
+- Error code name mapping (`_get_kern_return_name`)
+- SMCError exception handling
+- Input validation (invalid key lengths)
+
+**IOKit Collector Tests** (NEW - 8 comprehensive tests):
+- Fallback to IORegCollector on SMC errors
+- Fallback on general exceptions
+- Verbose mode logging during fallback
+- `_collect_with_smc` method with power input enhancement
+- `_collect_with_smc` method without power input
+- Verbose logging of sensor data
+- `_read_smc_sensors` with mocked SMC connection
+- Handling missing/unavailable sensors gracefully
+- IOKitCollector initialization and configuration
+- SMCPowerData dataclass
+
+Core SMC/IOKit interaction paths (connection opening, sensor reading) require physical macOS hardware and appropriate permissions. Current coverage levels are acceptable given these hardware constraints.
