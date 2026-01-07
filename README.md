@@ -9,10 +9,13 @@ macOS power monitoring tool with auto-updating TUI for real-time battery and cha
 - 📊 **Live power metrics** - Voltage, amperage, wattage, battery %
 - 📈 **Historical visualization** - Power chart and statistics
 - 🔋 **Battery tracking** - Capacity, charging status, charger info
-- 💾 **SQLite persistence** - Automatic background data logging
+- 💾 **SQLite persistence** - Automatic background data logging with proper resource management
 - 🎯 **IOKit/SMC access** - Direct macOS API integration via ctypes
 - 🔄 **Auto-fallback** - Graceful fallback to subprocess-based collection
 - ⚙️ **Configuration file** - Optional TOML config with CLI override support
+- 📤 **Data export** - Export to CSV/JSON formats
+- 🧹 **Data cleanup** - Remove old readings by age or clear all
+- 🏥 **Battery health** - Track battery degradation over time
 
 ## Installation
 
@@ -257,7 +260,7 @@ powermonitor uses two collectors with automatic fallback:
 
 ### Database
 
-All readings automatically saved to SQLite:
+All readings automatically saved to SQLite with proper resource management:
 
 **Default location**: `~/.powermonitor/powermonitor.db`
 
@@ -266,6 +269,12 @@ All readings automatically saved to SQLite:
 [database]
 path = "/path/to/custom.db"
 ```
+
+**Resource Management**:
+- Automatic connection cleanup using context managers
+- No ResourceWarnings or connection leaks
+- Proper transaction handling for all write operations
+- Safe shutdown and cleanup in TUI mode
 
 **Schema**:
 ```sql
@@ -352,14 +361,20 @@ uv run powermonitor
 - **Update interval**: 2 seconds (configurable)
 - **Database**: Indexed for fast queries
 
+## Recent Improvements
+
+- ✅ **Resource Management**: Proper SQLite connection cleanup eliminates ResourceWarnings
+- ✅ **Configuration System**: TOML-based config with 3-layer priority (CLI > Config > Defaults)
+- ✅ **CLI Commands**: Export, stats, history, cleanup, and battery health tracking
+- ✅ **Code Quality**: Clean test infrastructure with proper fixture cleanup
+- ✅ **Database Operations**: Context manager pattern for all database operations
+
 ## Migration Notes
-
-
-
 
 - **To**: Python TUI with unified auto-updating interface
 - **Reason**: Better rapid development, easier maintenance, similar performance for 2s intervals
 - **Preserved**: All data collection logic, database schema, SMC sensor access (via ctypes)
+- **Breaking Change**: `POWERMONITOR_DB_PATH` environment variable removed (use config.toml instead)
 
 ## License
 

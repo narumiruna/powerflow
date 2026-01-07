@@ -245,6 +245,13 @@ CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 - `query_history(limit=60)`: Retrieve last N readings
 - `get_statistics(limit=100)`: Calculate avg/min/max stats
 - `clear_history()`: Delete all readings
+- `close()`: Close database resources (currently no-op, API compatibility)
+
+**Resource Management**:
+- Uses `_get_connection()` context manager for write operations (combines `closing()` + transaction management)
+- Uses `closing()` context manager for read-only operations
+- All connections properly closed to prevent ResourceWarnings
+- TUI calls `database.close()` on shutdown for proper cleanup
 
 ### CLI Commands
 
@@ -402,14 +409,20 @@ uv run ruff format src/
 ```
 
 **Known Issues and Improvements:**
-See `IMPROVEMENTS.md` for a detailed roadmap. Phases 1-4 are complete:
+See `IMPROVEMENTS.md` for a detailed roadmap. All critical phases are complete:
 - ✅ Phase 1: Critical issues (database, error handling)
 - ✅ Phase 2: Configuration and validation
 - ✅ Phase 3: Code quality (IOKit errors, shutdown)
 - ✅ Phase 4: Essential CLI features (export, cleanup, health)
-- Phase 5: Optional (TUI tests, config file)
+- ✅ Resource management improvements (SQLite connection cleanup, ResourceWarning fixes)
+- Phase 5: Optional enhancements (TUI tests, additional features)
 
 The improvement roadmap is organized by priority to guide systematic refactoring.
+
+**Recent Improvements:**
+- **Resource Management**: Proper SQLite connection cleanup using `closing()` and `_get_connection()` context managers
+- **Code Quality**: Removed unnecessary complexity suppressions and pytest warning filters
+- **Test Infrastructure**: Updated test fixtures to properly yield and cleanup database connections
 
 ### Adding New Features
 
