@@ -6,12 +6,13 @@ from pathlib import Path
 from loguru import logger
 
 
-def setup_logger(level: str = "INFO", log_to_file: bool = True) -> None:
+def setup_logger(level: str = "INFO", log_to_file: bool = True, enqueue: bool = True) -> None:
     """Configure loguru logger for powermonitor.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
         log_to_file: Whether to log to file in ~/.powermonitor/
+        enqueue: Whether to enqueue log messages (async, thread-safe). Set to False for synchronous logging in tests.
 
     Features:
         - Console output for WARNING and above
@@ -42,7 +43,7 @@ def setup_logger(level: str = "INFO", log_to_file: bool = True) -> None:
             rotation="10 MB",  # Rotate when file reaches 10 MB
             retention="7 days",  # Keep logs for 7 days
             compression="zip",  # Compress rotated logs
-            enqueue=True,  # Thread-safe
+            enqueue=enqueue,  # Thread-safe async logging (disable in tests for synchronous writes)
         )
 
 
