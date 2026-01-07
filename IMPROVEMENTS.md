@@ -113,6 +113,26 @@ This document outlines recommended improvements for the powermonitor project, or
 - All type checks pass (ty)
 - All linting passes (ruff)
 
+### Phase 5 - Resource Management and Code Quality ✅
+
+**17. SQLite Connection Resource Management** - ✅ Completed (2026-01-07)
+- Implemented `_get_connection()` context manager for write operations
+  - Combines `closing()` and transaction management
+  - Automatic commit on success, rollback on exception
+- Updated all read operations to use `closing()` context manager
+- Added `Database.close()` method for API completeness (currently no-op)
+- Fixed resource leaks in `query_history()`, `get_statistics()`, and `get_battery_health()`
+- TUI properly calls `database.close()` on shutdown in both `on_unmount()` and `action_quit()`
+- Updated test fixtures to properly yield and cleanup
+- Removed unnecessary pytest ResourceWarning filters (no longer needed)
+- Files: `src/powermonitor/database.py`, `src/powermonitor/tui/app.py`, `tests/conftest.py`, `tests/test_database.py`, `pyproject.toml`
+
+**18. Code Quality Cleanup** - ✅ Completed (2026-01-07)
+- Removed unnecessary `noqa: C901` comment from `PowerMonitorConfig.__post_init__()`
+- Code complexity is acceptable without suppression
+- All ruff checks pass cleanly
+- Files: `src/powermonitor/config.py`
+
 ---
 
 ## Remaining Issues
@@ -335,9 +355,13 @@ level = "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
 16. ✅ Battery health tracking (#16) - Useful insights
 17. ✅ Database statistics command (bonus)
 
-### Phase 5 (Lower Priority - Optional) ✅ PARTIALLY COMPLETED
-8. Add TUI tests (#8) - Requires macOS, 2-3 hours
+### Phase 5 (Resource Management and Code Quality) ✅ COMPLETED
 10. ✅ Add configuration file support (#10) - Completed 2026-01-06
+17. ✅ SQLite connection resource management (#17) - Completed 2026-01-07
+18. ✅ Code quality cleanup (#18) - Completed 2026-01-07
+
+### Phase 6 (Lower Priority - Optional)
+8. Add TUI tests (#8) - Requires macOS, 2-3 hours
 
 ---
 
@@ -362,22 +386,36 @@ level = "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
 
 ## Documentation Updates ✅ COMPLETED
 
-Phase 4 documentation has been updated:
+All documentation has been updated to reflect implemented features:
 
-1. ✅ Updated README.md with new CLI commands
+1. ✅ Updated README.md (2026-01-06 & 2026-01-07)
    - Added `powermonitor export` usage examples
    - Added `powermonitor cleanup` usage examples
    - Added `powermonitor history` usage examples
    - Added `powermonitor health` usage examples
    - Added `powermonitor stats` command
    - Added TUI configuration options
+   - Added Database resource management section
+   - Added Recent Improvements section
+   - Updated Features list with new capabilities
+   - Added breaking change notes
 
-2. ✅ Updated CLAUDE.md with:
+2. ✅ Updated CLAUDE.md (2026-01-06 & 2026-01-07)
    - New CLI command descriptions
    - Database cleanup strategies
    - Export format specifications
+   - Resource management documentation
+   - Database operations with `close()` method
+   - Updated improvement roadmap status
+   - Added Recent Improvements section
 
-3. Future enhancements (optional):
+3. ✅ Updated IMPROVEMENTS.md (2026-01-07)
+   - Added Phase 5 completion details
+   - Documented resource management improvements
+   - Documented code quality cleanup
+   - Updated phase organization
+
+4. Future enhancements (optional):
    - User guide for data analysis workflows
    - Examples of using exported CSV data
    - Battery health interpretation guide
