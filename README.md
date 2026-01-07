@@ -2,6 +2,12 @@
 
 macOS power monitoring tool with auto-updating TUI for real-time battery and charging status.
 
+## Quick Start
+
+```bash
+uvx powermonitor
+```
+
 ## Features
 
 - 🖥️ **Auto-updating TUI** with 3-panel layout (Textual framework)
