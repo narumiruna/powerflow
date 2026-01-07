@@ -1,12 +1,34 @@
 """SQLite database operations for powermonitor."""
 
 import sqlite3
+from contextlib import closing
+from contextlib import contextmanager
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
 from .models import PowerReading
+
+
+@contextmanager
+def _get_connection(db_path: Path):
+    """Get a properly managed SQLite connection.
+
+    This context manager ensures both transaction handling and connection cleanup:
+    - Automatically commits on success or rolls back on exception (via conn context manager)
+    - Automatically closes the connection when done (via closing)
+
+    Usage:
+        with _get_connection(db_path) as conn:
+            cursor = conn.cursor()
+            # ... database operations ...
+
+    Yields:
+        sqlite3.Connection: A database connection with transaction management
+    """
+    with closing(sqlite3.connect(db_path)) as conn, conn:
+        yield conn
 
 
 def get_default_db_path() -> Path:
@@ -69,12 +91,22 @@ class Database:
         # Nothing to clean up as we use context managers for each connection
         return False
 
+    def close(self) -> None:
+        """Close any resources (no-op for now, but provided for API completeness).
+
+        Since each database operation uses its own connection context manager,
+        there are no persistent connections to close. This method is provided
+        for future-proofing and API consistency.
+        """
+        # No-op: all connections are already managed by context managers
+        pass
+
     def _init_schema(self) -> None:
         """Create database schema if it doesn't exist.
 
         Complete schema with all 12 PowerReading fields.
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with _get_connection(self.db_path) as conn:
             cursor = conn.cursor()
 
             # Create table with all 12 fields (was missing 4 fields in old version)
@@ -101,7 +133,6 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON power_readings(timestamp DESC)
             """)
-            # Commit is automatic with context manager
 
     def insert_reading(self, reading: PowerReading) -> int:
         """Insert power reading into database.
@@ -112,7 +143,7 @@ class Database:
         Returns:
             Row ID of inserted reading
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with _get_connection(self.db_path) as conn:
             cursor = conn.cursor()
 
             cursor.execute(
@@ -149,7 +180,6 @@ class Database:
             )
 
             row_id = cursor.lastrowid
-            # Commit is automatic with context manager
 
             assert row_id is not None, "Failed to insert reading"
             return row_id
@@ -163,7 +193,7 @@ class Database:
         Returns:
             List of PowerReading objects, ordered by timestamp DESC
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
 
             # Build query dynamically based on whether limit is specified
@@ -192,27 +222,27 @@ class Database:
 
             rows = cursor.fetchall()
 
-        # Convert rows to PowerReading objects
-        readings = []
-        for row in rows:
-            readings.append(
-                PowerReading(
-                    timestamp=datetime.fromisoformat(row[0]),
-                    watts_actual=row[1],
-                    watts_negotiated=row[2],
-                    voltage=row[3],
-                    amperage=row[4],
-                    current_capacity=row[5],
-                    max_capacity=row[6],
-                    battery_percent=row[7],
-                    is_charging=bool(row[8]),
-                    external_connected=bool(row[9]),
-                    charger_name=row[10],
-                    charger_manufacturer=row[11],
+            # Convert rows to PowerReading objects
+            readings = []
+            for row in rows:
+                readings.append(
+                    PowerReading(
+                        timestamp=datetime.fromisoformat(row[0]),
+                        watts_actual=row[1],
+                        watts_negotiated=row[2],
+                        voltage=row[3],
+                        amperage=row[4],
+                        current_capacity=row[5],
+                        max_capacity=row[6],
+                        battery_percent=row[7],
+                        is_charging=bool(row[8]),
+                        external_connected=bool(row[9]),
+                        charger_name=row[10],
+                        charger_manufacturer=row[11],
+                    )
                 )
-            )
 
-        return readings
+            return readings
 
     def get_statistics(self, limit: int | None = 100) -> dict:
         """Calculate statistics from recent readings.
@@ -223,7 +253,7 @@ class Database:
         Returns:
             Dictionary with avg, min, max power and battery stats
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
 
             # Build query dynamically based on whether limit is specified
@@ -263,26 +293,26 @@ class Database:
 
             row = cursor.fetchone()
 
-        if row and row[6] > 0:  # count > 0
-            return {
-                "avg_watts": row[0] or 0.0,
-                "min_watts": row[1] or 0.0,
-                "max_watts": row[2] or 0.0,
-                "avg_battery": row[3] or 0.0,
-                "earliest": row[4],
-                "latest": row[5],
-                "count": row[6],
-            }
+            if row and row[6] > 0:  # count > 0
+                return {
+                    "avg_watts": row[0] or 0.0,
+                    "min_watts": row[1] or 0.0,
+                    "max_watts": row[2] or 0.0,
+                    "avg_battery": row[3] or 0.0,
+                    "earliest": row[4],
+                    "latest": row[5],
+                    "count": row[6],
+                }
 
-        return {
-            "avg_watts": 0.0,
-            "min_watts": 0.0,
-            "max_watts": 0.0,
-            "avg_battery": 0.0,
-            "earliest": None,
-            "latest": None,
-            "count": 0,
-        }
+            return {
+                "avg_watts": 0.0,
+                "min_watts": 0.0,
+                "max_watts": 0.0,
+                "avg_battery": 0.0,
+                "earliest": None,
+                "latest": None,
+                "count": 0,
+            }
 
     def clear_history(self) -> int:
         """Clear all power readings from database.
@@ -290,12 +320,11 @@ class Database:
         Returns:
             Number of rows deleted
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with _get_connection(self.db_path) as conn:
             cursor = conn.cursor()
 
             cursor.execute("DELETE FROM power_readings")
             rows_deleted = cursor.rowcount
-            # Commit is automatic with context manager
 
             return rows_deleted
 
@@ -310,11 +339,10 @@ class Database:
         """
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with _get_connection(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM power_readings WHERE timestamp < ?", (cutoff.isoformat(),))
             rows_deleted = cursor.rowcount
-            # Commit is automatic with context manager
 
             return rows_deleted
 
@@ -332,7 +360,7 @@ class Database:
             raise ValueError("days must be a positive integer")
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
 
             cursor.execute(

@@ -220,7 +220,8 @@ def test_database_index_exists(temp_db):
     cursor = conn.cursor()
 
     # Initialize database
-    Database(temp_db)
+    db = Database(temp_db)
+    db.close()
 
     # Check index exists
     cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_timestamp'")

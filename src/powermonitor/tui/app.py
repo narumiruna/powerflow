@@ -103,6 +103,9 @@ class PowerMonitorApp(App):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._collector_task
 
+        # Close database resources
+        self.database.close()
+
     async def _collection_loop(self) -> None:
         """Background loop for periodic power data collection.
 
@@ -220,6 +223,9 @@ class PowerMonitorApp(App):
         # Give any pending database writes a moment to complete
         # (executor tasks may still be running)
         await asyncio.sleep(0.1)
+
+        # Close database resources
+        self.database.close()
 
         # Now safe to exit
         self.exit()

@@ -35,15 +35,15 @@ line-length = 120
 
 [tool.ruff.lint]
 select = [
-  "B",  # flake8-bugbear
-  "C",  # flake8-comprehensions
-  "E",  # pycodestyle errors
-  "F",  # pyflakes
-  "I",  # isort
-  "N",  # pep8-naming
-  "SIM",  # flake8-simplify
+  "B",   # flake8-bugbear
+  "C",   # flake8-comprehensions
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8-naming
+  "SIM", # flake8-simplify
   "UP",  # pyupgrade
-  "W",  # pycodestyle warnings
+  "W",   # pycodestyle warnings
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -66,13 +66,6 @@ addopts = [
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-filterwarnings = [
-  # Ignore sqlite3 ResourceWarnings - these are harmless warnings from Python 3.13
-  # when sqlite3.Connection objects are garbage collected. We use context managers
-  # properly but Python's typing introspection can trigger these warnings.
-  "ignore::ResourceWarning",
-  "ignore::pytest.PytestUnraisableExceptionWarning",
-]
 
 [tool.bumpversion]
 current_version = "0.0.4"

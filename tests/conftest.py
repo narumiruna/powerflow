@@ -38,10 +38,16 @@ def database(temp_db):
     Args:
         temp_db: Temporary database path fixture
 
-    Returns:
+    Yields:
         Database instance
+
+    Cleanup:
+        Closes database connections after test
     """
-    return Database(temp_db)
+    db = Database(temp_db)
+    yield db
+    # Ensure all connections are closed
+    db.close()
 
 
 @pytest.fixture
