@@ -93,7 +93,7 @@ class IOKitError(PowerCollectorError):
 class PowerReadingModel(Model):
     """Peewee ORM model for power_readings table."""
 
-    timestamp = DateTimeField()
+    timestamp = DateTimeField(index=True)
     watts_actual = FloatField()
     watts_negotiated = IntegerField()
     voltage = FloatField()
