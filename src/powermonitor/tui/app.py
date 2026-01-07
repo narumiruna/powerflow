@@ -23,7 +23,7 @@ class PowerMonitorApp(App):
     """powermonitor TUI application with auto-updating power data.
 
     Features:
-    - Real-time power monitoring (updates every 2s)
+    - Real-time power monitoring (updates every 1s by default)
     - Historical statistics and trends
     - Interactive chart showing power over time
     - Automatic data persistence to SQLite

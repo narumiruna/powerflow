@@ -146,7 +146,7 @@ powermonitor uses **Textual** for the TUI with a 3-panel auto-updating layout:
    - Status indicator: ⚡ Charging / 🔌 AC Power / 🔋 On Battery
    - Current power (W), battery %, voltage, amperage
    - Charger information if available
-   - Updates every 2 seconds
+   - Updates every 1 second
 
 2. **StatsPanel** (cyan border): Historical statistics
    - Time range (earliest/latest readings)
@@ -245,12 +245,15 @@ CREATE INDEX idx_timestamp ON power_readings(timestamp DESC);
 - `query_history(limit=60)`: Retrieve last N readings
 - `get_statistics(limit=100)`: Calculate avg/min/max stats
 - `clear_history()`: Delete all readings
-- `close()`: Close database resources (currently no-op, API compatibility)
+- `cleanup_old_data(days)`: Delete readings older than N days
+- `get_battery_health_trend(days)`: Get daily average battery health over time
+- `close()`: Close database connection (Peewee ORM)
 
 **Resource Management**:
-- Uses `_get_connection()` context manager for write operations (combines `closing()` + transaction management)
-- Uses `closing()` context manager for read-only operations
-- All connections properly closed to prevent ResourceWarnings
+- Uses Peewee ORM for all database operations
+- Supports context manager protocol (`with Database(path) as db`)
+- Automatic connection cleanup on context exit
+- Each Database instance has its own Peewee database connection
 - TUI calls `database.close()` on shutdown for proper cleanup
 
 ### CLI Commands
@@ -371,7 +374,7 @@ The TUI uses **asyncio** for background data collection:
 ```python
 async def _collection_loop(self) -> None:
     while True:
-        await asyncio.sleep(self.collection_interval)  # Default: 2.0s
+        await asyncio.sleep(self.config.collection_interval)  # Default: 1.0s
         await self._collect_and_update()
 
 async def _collect_and_update(self) -> None:
@@ -420,7 +423,7 @@ See `IMPROVEMENTS.md` for a detailed roadmap. All critical phases are complete:
 The improvement roadmap is organized by priority to guide systematic refactoring.
 
 **Recent Improvements:**
-- **Resource Management**: Proper SQLite connection cleanup using `closing()` and `_get_connection()` context managers
+- **Resource Management**: Proper SQLite connection cleanup using Peewee ORM with context managers
 - **Code Quality**: Removed unnecessary complexity suppressions and pytest warning filters
 - **Test Infrastructure**: Updated test fixtures to properly yield and cleanup database connections
 
@@ -496,5 +499,5 @@ AppleRawAdapterDetails   → charger info array
 
 - Memory usage: <50MB RAM
 - CPU usage: <1% when idle
-- Collection interval: 2 seconds (configurable)
+- Collection interval: 1 second (configurable)
 - Database queries: Indexed by timestamp for fast retrieval

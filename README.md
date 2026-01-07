@@ -11,7 +11,7 @@ uvx powermonitor
 ## Features
 
 - 🖥️ **Auto-updating TUI** with 3-panel layout (Textual framework)
-- ⚡ **Real-time monitoring** - Updates every 2 seconds automatically
+- ⚡ **Real-time monitoring** - Updates every 1 second automatically
 - 📊 **Live power metrics** - Voltage, amperage, wattage, battery %
 - 📈 **Historical visualization** - Power chart and statistics
 - 🔋 **Battery tracking** - Capacity, charging status, charger info
@@ -364,7 +364,7 @@ uv run powermonitor
 
 - **Memory**: <50MB RAM
 - **CPU**: <1% when idle
-- **Update interval**: 2 seconds (configurable)
+- **Update interval**: 1 second (configurable)
 - **Database**: Indexed for fast queries
 
 ## Recent Improvements
