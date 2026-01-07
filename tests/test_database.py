@@ -231,6 +231,10 @@ def test_database_timestamp_is_indexed(temp_db: str) -> None:
     timestamp_index_found = False
 
     for _, index_name, *_ in indexes:
+        # Validate index_name to prevent SQL injection
+        # Index names should only contain alphanumeric characters and underscores
+        if not index_name.replace("_", "").isalnum():
+            continue
         cursor.execute(f"PRAGMA index_info('{index_name}')")
         indexed_columns = [row[2] for row in cursor.fetchall()]
         if "timestamp" in indexed_columns:

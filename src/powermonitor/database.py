@@ -83,6 +83,11 @@ class Database:
         # Create tables and index with connection context
         with self.db.connection_context():
             self.db.create_tables([self.PowerReadingModel])
+            # Create descending index on timestamp for optimal query performance
+            # Queries consistently use ORDER BY timestamp DESC (lines 165, 199)
+            self.db.execute_sql(
+                "CREATE INDEX IF NOT EXISTS idx_timestamp_desc ON power_readings (timestamp DESC)"
+            )
 
     def _create_model(self):
         """Create a PowerReadingModel bound to this instance's database."""
@@ -90,7 +95,7 @@ class Database:
         class PowerReadingModel(Model):
             """Peewee ORM model for power_readings table."""
 
-            timestamp = DateTimeField(index=True)
+            timestamp = DateTimeField()
             watts_actual = FloatField()
             watts_negotiated = IntegerField()
             voltage = FloatField()
