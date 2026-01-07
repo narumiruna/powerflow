@@ -11,7 +11,6 @@ from peewee import Model
 from peewee import SqliteDatabase
 from peewee import TextField
 
-
 db = SqliteDatabase(None)  # Delayed initialization
 
 

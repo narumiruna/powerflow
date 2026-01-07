@@ -65,7 +65,7 @@ class Database:
         # Initialize Peewee database
         db.init(str(self.db_path))
         db.create_tables([PowerReadingModel])
-        
+
         # Create index with specific name for backward compatibility
         db.execute_sql(
             "CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)"
@@ -169,10 +169,13 @@ class Database:
             }
 
         readings = list(query)
-        
+
         # Handle timestamp - could be datetime or string depending on Peewee's behavior
-        timestamps = [r.timestamp if isinstance(r.timestamp, datetime) else datetime.fromisoformat(r.timestamp) for r in readings]
-        
+        timestamps = [
+            r.timestamp if isinstance(r.timestamp, datetime) else datetime.fromisoformat(r.timestamp)
+            for r in readings
+        ]
+
         return {
             "avg_watts": sum(r.watts_actual for r in readings) / len(readings),
             "min_watts": min(r.watts_actual for r in readings),
@@ -232,7 +235,11 @@ class Database:
 
         # Convert date to string if it's returned as datetime
         return [
-            (row.date if isinstance(row.date, str) else row.date.strftime("%Y-%m-%d"), row.avg_max_capacity, row.reading_count)
+            (
+                row.date if isinstance(row.date, str) else row.date.strftime("%Y-%m-%d"),
+                row.avg_max_capacity,
+                row.reading_count,
+            )
             for row in query
         ]
 
