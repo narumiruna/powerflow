@@ -194,8 +194,16 @@ def load_config() -> PowerMonitorConfig:
     default_history_limit = safe_convert("cli.default_history_limit", int, default_config.default_history_limit)
     default_export_limit = safe_convert("cli.default_export_limit", int, default_config.default_export_limit)
 
-    # Database path (no conversion needed, expanduser happens in __post_init__)
-    database_path = _get_nested_value(user_config, "database.path", str(default_config.database_path))
+    # Database path (ensure it's a string or Path; expanduser happens in __post_init__)
+    database_path_raw = _get_nested_value(user_config, "database.path", default_config.database_path)
+    if not isinstance(database_path_raw, (str, Path)):
+        logger.warning(
+            f"Invalid 'database.path' value {database_path_raw!r}; expected a string or Path - "
+            f"using default value {default_config.database_path!r}"
+        )
+        database_path = default_config.database_path
+    else:
+        database_path = database_path_raw
 
     # Log level (ensure it's a string, validation happens in __post_init__)
     log_level_raw = _get_nested_value(user_config, "logging.level", default_config.log_level)
