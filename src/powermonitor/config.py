@@ -42,7 +42,7 @@ class PowerMonitorConfig:
     default_export_limit: int = 1000  # default for export command
     log_level: str = "INFO"  # logging level (normalized to uppercase)
 
-    def __post_init__(self) -> None:  # noqa: C901
+    def __post_init__(self) -> None:
         """Validate and normalize configuration values after initialization.
 
         This method performs necessary normalization (log_level uppercase, database_path
