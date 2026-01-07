@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from peewee import BooleanField
+from peewee import DatabaseProxy
 from peewee import DateTimeField
 from peewee import FloatField
 from peewee import IntegerField
 from peewee import Model
-from peewee import SqliteDatabase
 from peewee import TextField
 
-db = SqliteDatabase(None)  # Delayed initialization
+database_proxy = DatabaseProxy()
 
 
 @dataclass
@@ -111,5 +111,5 @@ class PowerReadingModel(Model):
     charger_manufacturer = TextField(null=True)
 
     class Meta:
-        database = db
+        database = database_proxy
         table_name = "power_readings"

@@ -5,16 +5,12 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
-from peewee import BooleanField
-from peewee import DateTimeField
-from peewee import FloatField
-from peewee import IntegerField
-from peewee import Model
 from peewee import SqliteDatabase
-from peewee import TextField
 from peewee import fn
 
 from .models import PowerReading
+from .models import PowerReadingModel
+from .models import database_proxy
 
 
 def get_default_db_path() -> Path:
@@ -74,39 +70,14 @@ class Database:
         self.db = SqliteDatabase(str(self.db_path))
 
         # Create per-instance model bound to this database
-        self._create_model()
+        database_proxy.initialize(self.db)
 
         # Create tables
-        self.db.create_tables([self.PowerReadingModel])
+        self.db.create_tables([PowerReadingModel])
 
         # Create index with specific name for backward compatibility
         # Peewee's index=True would create an auto-named index, but tests expect idx_timestamp
         self.db.execute_sql("CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)")
-
-    def _create_model(self):
-        """Create a PowerReadingModel bound to this instance's database."""
-
-        class PowerReadingModel(Model):
-            """Peewee ORM model for power_readings table."""
-
-            timestamp = DateTimeField()
-            watts_actual = FloatField()
-            watts_negotiated = IntegerField()
-            voltage = FloatField()
-            amperage = FloatField()
-            current_capacity = IntegerField()
-            max_capacity = IntegerField()
-            battery_percent = IntegerField()
-            is_charging = BooleanField()
-            external_connected = BooleanField()
-            charger_name = TextField(null=True)
-            charger_manufacturer = TextField(null=True)
-
-            class Meta:
-                database = self.db
-                table_name = "power_readings"
-
-        self.PowerReadingModel = PowerReadingModel
 
     def __enter__(self):
         """Enter context manager (no-op, provided for API consistency)."""
@@ -134,7 +105,7 @@ class Database:
         Returns:
             Row ID of inserted reading
         """
-        model = self.PowerReadingModel.create(
+        model = PowerReadingModel.create(
             timestamp=reading.timestamp,
             watts_actual=reading.watts_actual,
             watts_negotiated=reading.watts_negotiated,
@@ -159,7 +130,7 @@ class Database:
         Returns:
             List of PowerReading objects, ordered by timestamp DESC
         """
-        query = self.PowerReadingModel.select().order_by(self.PowerReadingModel.timestamp.desc())
+        query = PowerReadingModel.select().order_by(PowerReadingModel.timestamp.desc())
         if limit is not None:
             query = query.limit(limit)
 
@@ -190,9 +161,9 @@ class Database:
         Returns:
             Dictionary with avg, min, max power and battery stats
         """
-        query = self.PowerReadingModel.select()
+        query = PowerReadingModel.select()
         if limit is not None:
-            query = query.order_by(self.PowerReadingModel.timestamp.desc()).limit(limit)
+            query = query.order_by(PowerReadingModel.timestamp.desc()).limit(limit)
 
         readings = list(query)
 
@@ -231,7 +202,7 @@ class Database:
         Returns:
             Number of rows deleted
         """
-        return self.PowerReadingModel.delete().execute()
+        return PowerReadingModel.delete().execute()
 
     def cleanup_old_data(self, days: int) -> int:
         """Delete power readings older than specified number of days.
@@ -243,7 +214,7 @@ class Database:
             Number of rows deleted
         """
         cutoff = datetime.now(UTC) - timedelta(days=days)
-        return self.PowerReadingModel.delete().where(self.PowerReadingModel.timestamp < cutoff).execute()
+        return PowerReadingModel.delete().where(PowerReadingModel.timestamp < cutoff).execute()
 
     def get_battery_health_trend(self, days: int = 30) -> list[tuple[str, float, int]]:
         """Get daily average battery health (max_capacity) over specified period.
@@ -262,14 +233,14 @@ class Database:
 
         # Use Peewee's fn.DATE() and aggregation
         query = (
-            self.PowerReadingModel.select(
-                fn.DATE(self.PowerReadingModel.timestamp).alias("date"),
-                fn.AVG(self.PowerReadingModel.max_capacity).alias("avg_max_capacity"),
-                fn.COUNT(self.PowerReadingModel.id).alias("reading_count"),
+            PowerReadingModel.select(
+                fn.DATE(PowerReadingModel.timestamp).alias("date"),
+                fn.AVG(PowerReadingModel.max_capacity).alias("avg_max_capacity"),
+                fn.COUNT(PowerReadingModel.id).alias("reading_count"),
             )
-            .where(self.PowerReadingModel.timestamp >= cutoff)
-            .group_by(fn.DATE(self.PowerReadingModel.timestamp))
-            .order_by(fn.DATE(self.PowerReadingModel.timestamp))
+            .where(PowerReadingModel.timestamp >= cutoff)
+            .group_by(fn.DATE(PowerReadingModel.timestamp))
+            .order_by(fn.DATE(PowerReadingModel.timestamp))
         )
 
         # SQLite's DATE() function returns strings in YYYY-MM-DD format
