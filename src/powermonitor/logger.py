@@ -45,7 +45,3 @@ def setup_logger(level: str = "INFO", log_to_file: bool = True, enqueue: bool = 
             compression="zip",  # Compress rotated logs
             enqueue=enqueue,  # Thread-safe async logging (disable in tests for synchronous writes)
         )
-
-
-# Initialize logger on import
-setup_logger()
