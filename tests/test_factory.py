@@ -8,20 +8,24 @@ import pytest
 from powermonitor.collector.factory import default_collector
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="Test requires macOS",
+)
 def test_default_collector_on_macos():
     """Test that default_collector returns a collector on macOS."""
-    if sys.platform != "darwin":
-        pytest.skip("Test requires macOS")
 
     collector = default_collector()
     assert collector is not None
     assert hasattr(collector, "collect")
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="Test requires macOS",
+)
 def test_default_collector_verbose_mode():
     """Test default_collector with verbose mode enabled."""
-    if sys.platform != "darwin":
-        pytest.skip("Test requires macOS")
 
     # Should not raise any errors
     collector = default_collector(verbose=True)

@@ -16,8 +16,8 @@ def test_setup_logger_with_defaults(tmp_path, monkeypatch):
     # Remove existing handlers
     logger.remove()
 
-    # Setup logger with defaults
-    setup_logger(level="INFO", log_to_file=True)
+    # Setup logger with defaults (synchronous mode for tests)
+    setup_logger(level="INFO", log_to_file=True, enqueue=False)
 
     # Verify log directory created
     assert log_dir.exists()
@@ -29,7 +29,8 @@ def test_setup_logger_debug_level(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     logger.remove()
 
-    setup_logger(level="DEBUG", log_to_file=True)
+    # Use synchronous mode (enqueue=False) for immediate writes in tests
+    setup_logger(level="DEBUG", log_to_file=True, enqueue=False)
 
     # Log debug message
     logger.debug("Test debug message")
@@ -47,7 +48,7 @@ def test_setup_logger_without_file(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     logger.remove()
 
-    setup_logger(level="INFO", log_to_file=False)
+    setup_logger(level="INFO", log_to_file=False, enqueue=False)
 
     # Log directory should not be created
     log_dir = tmp_path / ".powermonitor"
@@ -56,8 +57,6 @@ def test_setup_logger_without_file(tmp_path, monkeypatch):
 
 def test_setup_logger_different_levels(tmp_path, monkeypatch):
     """Test logger with different log levels."""
-    import time
-
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     log_file = tmp_path / ".powermonitor" / "powermonitor.log"
 
@@ -68,14 +67,11 @@ def test_setup_logger_different_levels(tmp_path, monkeypatch):
         if log_file.exists():
             log_file.unlink()
 
-        setup_logger(level=level, log_to_file=True)
+        # Use synchronous mode (enqueue=False) for immediate writes in tests
+        setup_logger(level=level, log_to_file=True, enqueue=False)
 
         # Log at that level
         getattr(logger, level.lower())(f"Test {level} message")
-
-        # Flush logger to ensure write completes (enqueue=True makes it async)
-        logger.complete()
-        time.sleep(0.1)  # Small delay to ensure file is written
 
         # Verify log file
         assert log_file.exists()
@@ -92,7 +88,7 @@ def test_setup_logger_creates_directory(tmp_path, monkeypatch):
     log_dir = tmp_path / ".powermonitor"
     assert not log_dir.exists()
 
-    setup_logger(level="INFO", log_to_file=True)
+    setup_logger(level="INFO", log_to_file=True, enqueue=False)
 
     # Directory should be created
     assert log_dir.exists()
