@@ -12,6 +12,18 @@ from .models import PowerReadingModel
 from .models import db
 
 
+def _ensure_datetime(value: datetime | str) -> datetime:
+    """Convert timestamp value to datetime if it's a string.
+
+    Args:
+        value: datetime object or ISO format string
+
+    Returns:
+        datetime object
+    """
+    return value if isinstance(value, datetime) else datetime.fromisoformat(value)
+
+
 def get_default_db_path() -> Path:
     """Get default database path.
 
@@ -128,7 +140,7 @@ class Database:
 
         return [
             PowerReading(
-                timestamp=r.timestamp if isinstance(r.timestamp, datetime) else datetime.fromisoformat(r.timestamp),
+                timestamp=_ensure_datetime(r.timestamp),
                 watts_actual=r.watts_actual,
                 watts_negotiated=r.watts_negotiated,
                 voltage=r.voltage,
@@ -171,10 +183,7 @@ class Database:
         readings = list(query)
 
         # Handle timestamp - could be datetime or string depending on Peewee's behavior
-        timestamps = [
-            r.timestamp if isinstance(r.timestamp, datetime) else datetime.fromisoformat(r.timestamp)
-            for r in readings
-        ]
+        timestamps = [_ensure_datetime(r.timestamp) for r in readings]
 
         return {
             "avg_watts": sum(r.watts_actual for r in readings) / len(readings),
@@ -233,15 +242,16 @@ class Database:
             .order_by(fn.DATE(PowerReadingModel.timestamp))
         )
 
-        # Convert date to string if it's returned as datetime
-        return [
-            (
-                row.date if isinstance(row.date, str) else row.date.strftime("%Y-%m-%d"),
-                row.avg_max_capacity,
-                row.reading_count,
-            )
-            for row in query
-        ]
+        # Convert date to string - fn.DATE() typically returns strings in SQLite
+        # but handle datetime objects defensively
+        result = []
+        for row in query:
+            date_str = row.date
+            if not isinstance(date_str, str):
+                # Handle datetime objects if returned by Peewee
+                date_str = date_str.strftime("%Y-%m-%d") if hasattr(date_str, "strftime") else str(date_str)
+            result.append((date_str, row.avg_max_capacity, row.reading_count))
+        return result
 
 
 # Module-level convenience functions
