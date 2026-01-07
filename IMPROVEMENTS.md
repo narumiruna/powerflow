@@ -35,7 +35,7 @@ This document outlines remaining improvements for the powermonitor project.
 
 ### Summary
 
-**Overall Project Coverage**: 83% (up from 19%)
+**Overall Project Coverage**: 52% (up from 19%)
 
 **Major Improvements**:
 - CLI commands: 80% (was 0%)
