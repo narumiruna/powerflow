@@ -132,7 +132,7 @@ class Database:
 
         Closes the Peewee database connection if it's open.
         """
-        if not self.db.is_closed():
+        if hasattr(self, "db") and self.db is not None and not self.db.is_closed():
             self.db.close()
 
     def insert_reading(self, reading: PowerReading) -> int:
