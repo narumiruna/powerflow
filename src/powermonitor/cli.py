@@ -17,12 +17,17 @@ from .database import Database
 from .logger import setup_logger
 from .tui.app import PowerMonitorApp
 
-app = typer.Typer(help="macOS power monitoring tool with TUI and data export")
+app = typer.Typer(
+    help="macOS power monitoring tool with TUI and data export",
+    invoke_without_command=True,
+    no_args_is_help=False,
+)
 console = Console()
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     interval: Annotated[
         float | None,
         typer.Option(
@@ -56,10 +61,14 @@ def main(
 ) -> None:
     """Main entry point for powermonitor CLI.
 
-    Directly launches the Textual TUI (no subcommands needed).
+    Directly launches the Textual TUI when no subcommand is provided.
 
     Configuration priority: CLI arguments > Config file (~/.powermonitor/config.toml) > Defaults
     """
+    # If a subcommand was invoked, do not run the TUI here.
+    if ctx.invoked_subcommand is not None:
+        return
+
     # Load configuration from file (or use defaults)
     base_config = load_config()
 
