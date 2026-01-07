@@ -117,6 +117,10 @@ class Database:
         self.close()
         return False
 
+    def __del__(self):
+        """Destructor to ensure database is closed on garbage collection."""
+        self.close()
+
     def close(self) -> None:
         """Close database connection.
 
