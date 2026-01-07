@@ -107,11 +107,11 @@ See `tests/test_tui.py` for the implemented test suite.
 - ✅ IOKit Parser: 81% ⬆️ (was 19%)
 - ✅ IORegCollector: 78% ⬆️ (was 70%)
 - ✅ TUI App: 77%
+- ✅ Factory: 75% ⬆️ (was 62%)
 - ✅ Config: 89%
 
 **Acceptable coverage** (50-69%):
 - ⚠️ IOKit Connection: 69%
-- ⚠️ Factory: 62%
 - ⚠️ IOKit Collector: 57%
 
 **Note**: Remaining IOKit components require macOS hardware for full coverage and cannot be fully tested in CI/CD. Current coverage levels are acceptable given the constraints.
