@@ -119,7 +119,12 @@ class Database:
 
     def __del__(self):
         """Destructor to ensure database is closed on garbage collection."""
-        self.close()
+        try:
+            if hasattr(self, "db"):
+                self.close()
+        except Exception:
+            # Silently ignore errors during garbage collection
+            pass
 
     def close(self) -> None:
         """Close database connection.
