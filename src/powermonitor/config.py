@@ -56,13 +56,16 @@ class PowerMonitorConfig:
         Raises:
             ValueError: If any configuration value is invalid
         """
-        # Ensure database_path is a Path object (for string inputs)
+        # Ensure database_path is a Path object with expanded user path
         if not isinstance(self.database_path, Path):
-            object.__setattr__(self, "database_path", Path(self.database_path))
+            object.__setattr__(self, "database_path", Path(self.database_path).expanduser())
+        else:
+            object.__setattr__(self, "database_path", self.database_path.expanduser())
 
-        # Normalize log_level to uppercase (required for validation)
-        if isinstance(self.log_level, str):
-            object.__setattr__(self, "log_level", self.log_level.upper())
+        # Normalize and validate log_level
+        if not isinstance(self.log_level, str):
+            raise ValueError(f"log_level must be a string, got {type(self.log_level).__name__}")
+        object.__setattr__(self, "log_level", self.log_level.upper())
 
         # Validate numeric parameters
         if self.collection_interval <= 0:
