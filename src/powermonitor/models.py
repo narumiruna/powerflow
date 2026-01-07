@@ -91,9 +91,13 @@ class IOKitError(PowerCollectorError):
 
 
 class PowerReadingModel(Model):
-    """Peewee ORM model for power_readings table."""
+    """Peewee ORM model for power_readings table.
 
-    timestamp = DateTimeField(index=True)
+    Note: This is a base model definition. The Database class creates
+    per-instance models bound to specific database connections.
+    """
+
+    timestamp = DateTimeField()
     watts_actual = FloatField()
     watts_negotiated = IntegerField()
     voltage = FloatField()

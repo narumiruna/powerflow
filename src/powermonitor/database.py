@@ -5,23 +5,11 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
+from peewee import Model
+from peewee import SqliteDatabase
 from peewee import fn
 
 from .models import PowerReading
-from .models import PowerReadingModel
-from .models import db
-
-
-def _ensure_datetime(value: datetime | str) -> datetime:
-    """Convert timestamp value to datetime if it's a string.
-
-    Args:
-        value: datetime object or ISO format string
-
-    Returns:
-        datetime object
-    """
-    return value if isinstance(value, datetime) else datetime.fromisoformat(value)
 
 
 def get_default_db_path() -> Path:
@@ -50,6 +38,9 @@ class Database:
     The Database class manages schema initialization and provides methods for
     reading/writing power data. Uses Peewee ORM for simplified database operations.
 
+    Each Database instance has its own Peewee database connection, allowing
+    multiple Database instances to operate on different database files independently.
+
     The context manager protocol (__enter__/__exit__) is provided for API
     consistency with common database patterns.
 
@@ -74,14 +65,50 @@ class Database:
         # Ensure parent directory exists for custom database paths
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Initialize Peewee database
-        db.init(str(self.db_path))
-        db.create_tables([PowerReadingModel])
+        # Create per-instance Peewee database
+        self.db = SqliteDatabase(str(self.db_path))
+
+        # Create per-instance model bound to this database
+        self._create_model()
+
+        # Create tables
+        self.db.create_tables([self.PowerReadingModel])
 
         # Create index with specific name for backward compatibility
-        db.execute_sql(
+        # Peewee's index=True would create an auto-named index, but tests expect idx_timestamp
+        self.db.execute_sql(
             "CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)"
         )
+
+    def _create_model(self):
+        """Create a PowerReadingModel bound to this instance's database."""
+        from peewee import BooleanField
+        from peewee import DateTimeField
+        from peewee import FloatField
+        from peewee import IntegerField
+        from peewee import TextField
+
+        class PowerReadingModel(Model):
+            """Peewee ORM model for power_readings table."""
+
+            timestamp = DateTimeField()
+            watts_actual = FloatField()
+            watts_negotiated = IntegerField()
+            voltage = FloatField()
+            amperage = FloatField()
+            current_capacity = IntegerField()
+            max_capacity = IntegerField()
+            battery_percent = IntegerField()
+            is_charging = BooleanField()
+            external_connected = BooleanField()
+            charger_name = TextField(null=True)
+            charger_manufacturer = TextField(null=True)
+
+            class Meta:
+                database = self.db
+                table_name = "power_readings"
+
+        self.PowerReadingModel = PowerReadingModel
 
     def __enter__(self):
         """Enter context manager (no-op, provided for API consistency)."""
@@ -97,8 +124,8 @@ class Database:
 
         Closes the Peewee database connection if it's open.
         """
-        if not db.is_closed():
-            db.close()
+        if not self.db.is_closed():
+            self.db.close()
 
     def insert_reading(self, reading: PowerReading) -> int:
         """Insert power reading into database.
@@ -109,7 +136,7 @@ class Database:
         Returns:
             Row ID of inserted reading
         """
-        model = PowerReadingModel.create(
+        model = self.PowerReadingModel.create(
             timestamp=reading.timestamp,
             watts_actual=reading.watts_actual,
             watts_negotiated=reading.watts_negotiated,
@@ -134,13 +161,13 @@ class Database:
         Returns:
             List of PowerReading objects, ordered by timestamp DESC
         """
-        query = PowerReadingModel.select().order_by(PowerReadingModel.timestamp.desc())
+        query = self.PowerReadingModel.select().order_by(self.PowerReadingModel.timestamp.desc())
         if limit is not None:
             query = query.limit(limit)
 
         return [
             PowerReading(
-                timestamp=_ensure_datetime(r.timestamp),
+                timestamp=r.timestamp if isinstance(r.timestamp, datetime) else datetime.fromisoformat(r.timestamp),
                 watts_actual=r.watts_actual,
                 watts_negotiated=r.watts_negotiated,
                 voltage=r.voltage,
@@ -165,11 +192,13 @@ class Database:
         Returns:
             Dictionary with avg, min, max power and battery stats
         """
-        query = PowerReadingModel.select()
+        query = self.PowerReadingModel.select()
         if limit is not None:
-            query = query.order_by(PowerReadingModel.timestamp.desc()).limit(limit)
+            query = query.order_by(self.PowerReadingModel.timestamp.desc()).limit(limit)
 
-        if query.count() == 0:
+        readings = list(query)
+
+        if not readings:
             return {
                 "avg_watts": 0.0,
                 "min_watts": 0.0,
@@ -180,10 +209,13 @@ class Database:
                 "count": 0,
             }
 
-        readings = list(query)
-
-        # Handle timestamp - could be datetime or string depending on Peewee's behavior
-        timestamps = [_ensure_datetime(r.timestamp) for r in readings]
+        # Ensure timestamps are datetime objects (handle both datetime and string)
+        timestamps = []
+        for r in readings:
+            if isinstance(r.timestamp, datetime):
+                timestamps.append(r.timestamp)
+            else:
+                timestamps.append(datetime.fromisoformat(r.timestamp))
 
         return {
             "avg_watts": sum(r.watts_actual for r in readings) / len(readings),
@@ -201,7 +233,7 @@ class Database:
         Returns:
             Number of rows deleted
         """
-        return PowerReadingModel.delete().execute()
+        return self.PowerReadingModel.delete().execute()
 
     def cleanup_old_data(self, days: int) -> int:
         """Delete power readings older than specified number of days.
@@ -213,7 +245,7 @@ class Database:
             Number of rows deleted
         """
         cutoff = datetime.now(UTC) - timedelta(days=days)
-        return PowerReadingModel.delete().where(PowerReadingModel.timestamp < cutoff).execute()
+        return self.PowerReadingModel.delete().where(self.PowerReadingModel.timestamp < cutoff).execute()
 
     def get_battery_health_trend(self, days: int = 30) -> list[tuple[str, float, int]]:
         """Get daily average battery health (max_capacity) over specified period.
@@ -232,24 +264,22 @@ class Database:
 
         # Use Peewee's fn.DATE() and aggregation
         query = (
-            PowerReadingModel.select(
-                fn.DATE(PowerReadingModel.timestamp).alias("date"),
-                fn.AVG(PowerReadingModel.max_capacity).alias("avg_max_capacity"),
-                fn.COUNT(PowerReadingModel.id).alias("reading_count"),
+            self.PowerReadingModel.select(
+                fn.DATE(self.PowerReadingModel.timestamp).alias("date"),
+                fn.AVG(self.PowerReadingModel.max_capacity).alias("avg_max_capacity"),
+                fn.COUNT(self.PowerReadingModel.id).alias("reading_count"),
             )
-            .where(PowerReadingModel.timestamp >= cutoff)
-            .group_by(fn.DATE(PowerReadingModel.timestamp))
-            .order_by(fn.DATE(PowerReadingModel.timestamp))
+            .where(self.PowerReadingModel.timestamp >= cutoff)
+            .group_by(fn.DATE(self.PowerReadingModel.timestamp))
+            .order_by(fn.DATE(self.PowerReadingModel.timestamp))
         )
 
-        # Convert date to string - fn.DATE() typically returns strings in SQLite
-        # but handle datetime objects defensively
+        # SQLite's DATE() function returns strings in YYYY-MM-DD format
         result = []
         for row in query:
-            date_str = row.date
-            if not isinstance(date_str, str):
-                # Handle datetime objects if returned by Peewee
-                date_str = date_str.strftime("%Y-%m-%d") if hasattr(date_str, "strftime") else str(date_str)
+            date_value = row.date
+            # Convert to string if needed (defensive)
+            date_str = date_value.strftime("%Y-%m-%d") if isinstance(date_value, datetime) else str(date_value)
             result.append((date_str, row.avg_max_capacity, row.reading_count))
         return result
 
