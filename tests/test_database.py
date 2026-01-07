@@ -214,8 +214,8 @@ def test_reading_with_null_charger(database):
     assert history[0].charger_manufacturer is None
 
 
-def test_database_index_exists(temp_db):
-    """Test that timestamp index exists for performance."""
+def test_database_timestamp_is_indexed(temp_db: str) -> None:
+    """Test that timestamp column is indexed (name may vary)."""
     conn = sqlite3.connect(temp_db)
     cursor = conn.cursor()
 
@@ -223,9 +223,21 @@ def test_database_index_exists(temp_db):
     db = Database(temp_db)
     db.close()
 
-    # Check index exists
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_timestamp'")
-    assert cursor.fetchone() is not None
+    # Find all indexes on power_readings
+    cursor.execute("PRAGMA index_list('power_readings')")
+    indexes = cursor.fetchall()
+
+    # Ensure at least one index exists on timestamp column
+    timestamp_index_found = False
+
+    for _, index_name, *_ in indexes:
+        cursor.execute(f"PRAGMA index_info('{index_name}')")
+        indexed_columns = [row[2] for row in cursor.fetchall()]
+        if "timestamp" in indexed_columns:
+            timestamp_index_found = True
+            break
+
+    assert timestamp_index_found, "timestamp column should be indexed"
 
     conn.close()
 

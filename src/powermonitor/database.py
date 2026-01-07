@@ -84,17 +84,13 @@ class Database:
         with self.db.connection_context():
             self.db.create_tables([self.PowerReadingModel])
 
-            # Create index with specific name for backward compatibility
-            # Peewee's index=True would create an auto-named index, but tests expect idx_timestamp
-            self.db.execute_sql("CREATE INDEX IF NOT EXISTS idx_timestamp ON power_readings(timestamp DESC)")
-
     def _create_model(self):
         """Create a PowerReadingModel bound to this instance's database."""
 
         class PowerReadingModel(Model):
             """Peewee ORM model for power_readings table."""
 
-            timestamp = DateTimeField()
+            timestamp = DateTimeField(index=True)
             watts_actual = FloatField()
             watts_negotiated = IntegerField()
             voltage = FloatField()
