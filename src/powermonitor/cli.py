@@ -25,7 +25,7 @@ app = typer.Typer(
 console = Console()
 
 
-@app.callback(invoke_without_command=True)
+@app.callback()
 def main(
     ctx: typer.Context,
     interval: Annotated[
