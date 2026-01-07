@@ -56,6 +56,8 @@ def test_setup_logger_without_file(tmp_path, monkeypatch):
 
 def test_setup_logger_different_levels(tmp_path, monkeypatch):
     """Test logger with different log levels."""
+    import time
+
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     log_file = tmp_path / ".powermonitor" / "powermonitor.log"
 
@@ -70,6 +72,10 @@ def test_setup_logger_different_levels(tmp_path, monkeypatch):
 
         # Log at that level
         getattr(logger, level.lower())(f"Test {level} message")
+
+        # Flush logger to ensure write completes (enqueue=True makes it async)
+        logger.complete()
+        time.sleep(0.1)  # Small delay to ensure file is written
 
         # Verify log file
         assert log_file.exists()
