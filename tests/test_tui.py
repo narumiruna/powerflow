@@ -1,5 +1,6 @@
 """Tests for TUI components."""
 
+import sys
 from datetime import UTC
 from datetime import datetime
 
@@ -90,6 +91,10 @@ def test_stats_panel_with_data():
     assert "75.5%" in rendered
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="PowerMonitorApp requires macOS collector",
+)
 async def test_app_launches():
     """Test that PowerMonitorApp can launch without errors."""
     config = PowerMonitorConfig(collection_interval=1.0)
@@ -102,6 +107,10 @@ async def test_app_launches():
         assert app.query_one("#chart") is not None
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="PowerMonitorApp requires macOS collector",
+)
 async def test_app_refresh_action():
     """Test that refresh action works."""
     config = PowerMonitorConfig(collection_interval=1.0)

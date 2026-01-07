@@ -10,6 +10,10 @@ from powermonitor.collector.ioreg import IORegCollector
 from powermonitor.models import PowerReading
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_with_real_data(ioreg_fixture_path):
     """Test IORegCollector with real ioreg output."""
     # Read fixture data
@@ -47,6 +51,10 @@ def test_ioreg_collector_with_real_data(ioreg_fixture_path):
     assert 10.0 <= reading.voltage <= 21.0
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_voltage_conversion():
     """Test voltage conversion from mV to V."""
     collector = IORegCollector()
@@ -66,6 +74,10 @@ def test_ioreg_collector_voltage_conversion():
     assert abs(reading.voltage - 12.71) < 0.01
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_amperage_conversion():
     """Test amperage conversion from mA to A."""
     collector = IORegCollector()
@@ -85,6 +97,10 @@ def test_ioreg_collector_amperage_conversion():
     assert abs(reading.amperage - 2.275) < 0.001
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_watts_calculation():
     """Test watts_actual calculation (V × A)."""
     collector = IORegCollector()
@@ -105,6 +121,10 @@ def test_ioreg_collector_watts_calculation():
     assert abs(reading.watts_actual - expected_watts) < 0.1
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_negative_amperage():
     """Test negative amperage (discharging)."""
     collector = IORegCollector()
@@ -125,6 +145,10 @@ def test_ioreg_collector_negative_amperage():
     assert reading.is_charging is False
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_battery_percent():
     """Test battery percent calculation."""
     collector = IORegCollector()
@@ -144,6 +168,10 @@ def test_ioreg_collector_battery_percent():
     assert reading.battery_percent == 75
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_charger_info():
     """Test charger info extraction."""
     collector = IORegCollector()
@@ -171,6 +199,10 @@ def test_ioreg_collector_charger_info():
     assert reading.charger_manufacturer == "Apple Inc."
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_no_charger():
     """Test reading without charger (on battery)."""
     collector = IORegCollector()
@@ -192,6 +224,10 @@ def test_ioreg_collector_no_charger():
     assert reading.external_connected is False
 
 
+@pytest.mark.skipif(
+    sys.platform != "darwin",
+    reason="IORegCollector requires macOS",
+)
 def test_ioreg_collector_full_battery():
     """Test reading at 100% battery."""
     collector = IORegCollector()
