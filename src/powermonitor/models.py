@@ -3,6 +3,16 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from peewee import BooleanField
+from peewee import DateTimeField
+from peewee import FloatField
+from peewee import IntegerField
+from peewee import Model
+from peewee import SqliteDatabase
+from peewee import TextField
+
+db = SqliteDatabase(None)  # Delayed initialization
+
 
 @dataclass
 class PowerReading:
@@ -78,3 +88,28 @@ class MissingFieldError(PowerCollectorError):
 
 class IOKitError(PowerCollectorError):
     """IOKit/SMC API error."""
+
+
+class PowerReadingModel(Model):
+    """Peewee ORM model for power_readings table.
+
+    Note: This is a base model definition. The Database class creates
+    per-instance models bound to specific database connections.
+    """
+
+    timestamp = DateTimeField()
+    watts_actual = FloatField()
+    watts_negotiated = IntegerField()
+    voltage = FloatField()
+    amperage = FloatField()
+    current_capacity = IntegerField()
+    max_capacity = IntegerField()
+    battery_percent = IntegerField()
+    is_charging = BooleanField()
+    external_connected = BooleanField()
+    charger_name = TextField(null=True)
+    charger_manufacturer = TextField(null=True)
+
+    class Meta:
+        database = db
+        table_name = "power_readings"

@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 authors = [{ name = "narumi", email = "toucans-cutouts0f@icloud.com" }]
 dependencies = [
   "loguru>=0.7.3",
+  "peewee>=3.18.3",
   "rich>=13.7.0",
   "textual>=0.50.0",
   "textual-plotext>=0.2.0",
