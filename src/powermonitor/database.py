@@ -1,5 +1,6 @@
 """SQLite database operations for powermonitor."""
 
+import atexit
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
@@ -293,6 +294,20 @@ class Database:
 
 # Module-level convenience functions
 _db_instances: dict[Path, Database] = {}
+
+
+def _cleanup_db_instances():
+    """Close all cached database instances on exit."""
+    for db in _db_instances.values():
+        try:
+            db.close()
+        except Exception:
+            pass  # Ignore errors during cleanup
+    _db_instances.clear()
+
+
+# Register cleanup function to be called at exit
+atexit.register(_cleanup_db_instances)
 
 
 def get_database(db_path: Path | str = DB_PATH) -> Database:
