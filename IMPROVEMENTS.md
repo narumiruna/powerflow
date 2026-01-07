@@ -35,14 +35,17 @@ This document outlines remaining improvements for the powermonitor project.
 
 ### Summary
 
-**Overall Project Coverage**: 52% (up from 19%)
+**Overall Project Coverage**: 83% (up from 19%)
 
 **Major Improvements**:
 - CLI commands: 80% (was 0%)
 - Logger: 100% (was 0%)
 - Config Loader: 93% (was 12%)
+- Database: 92% (was 88%)
 - IOKit Parser: 81% (was 19%)
+- IORegCollector: 78% (was 70%)
 - TUI App: 77% (was 0%)
+- Factory: 75% (was 62%)
 - TUI Widgets: 99% (was 0%)
 
 **Benefits Achieved**:
