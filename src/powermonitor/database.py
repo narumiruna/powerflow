@@ -120,7 +120,7 @@ class Database:
     def __del__(self):
         """Destructor to ensure database is closed on garbage collection."""
         try:
-            if hasattr(self, "db"):
+            if hasattr(self, "db") and self.db is not None:
                 self.close()
         except Exception:
             # Silently ignore errors during garbage collection
